@@ -6,8 +6,8 @@ app.registerExtension({
     // 分类中文映射
     const categoryNameMap = {
       "ScriptGenerator": "📝 脚本生成",
-      "Sora2": "🎬 视频生成",
-      "Veo3": "🚀 Veo 视频生成",
+      "Sora2": "🎬 Sora2 视频生成",
+      "Veo3": "🚀 Veo3.1 视频生成",
       "Product": "📦 产品管理",
       "配套能力": "🛠️ 配套能力"
     };
@@ -15,26 +15,26 @@ app.registerExtension({
     // 自动发现节点
     const discoverNodes = () => {
       const categories = {};
-      
+
       for (const [nodeType, nodeClass] of Object.entries(LiteGraph.registered_node_types)) {
         const category = nodeClass.category;
         if (category && (category.toLowerCase().startsWith("kuai/") || category.toLowerCase().startsWith("kuaipower/"))) {
           const categoryName = category.split("/")[1];
           const displayCategory = categoryNameMap[categoryName] || categoryName;
-          
+
           if (!categories[displayCategory]) {
             categories[displayCategory] = [];
           }
-          
+
           const displayName = nodeClass.display_name || nodeClass.title || nodeType;
-          
+
           categories[displayCategory].push({
             name: nodeType,
             display: displayName
           });
         }
       }
-      
+
       return categories;
     };
 
@@ -146,11 +146,11 @@ app.registerExtension({
           let hasResults = false;
 
           Object.entries(allNodes).forEach(([category, items]) => {
-            const filteredItems = filter 
-              ? items.filter(item => 
-                  item.display.toLowerCase().includes(filter.toLowerCase()) ||
-                  item.name.toLowerCase().includes(filter.toLowerCase())
-                )
+            const filteredItems = filter
+              ? items.filter(item =>
+                item.display.toLowerCase().includes(filter.toLowerCase()) ||
+                item.name.toLowerCase().includes(filter.toLowerCase())
+              )
               : items;
 
             if (filteredItems.length === 0) return;
@@ -222,7 +222,7 @@ app.registerExtension({
                   app.graph.add(node);
                   app.canvas.selectNode(node);
                   app.graph.setDirtyCanvas(true, true);
-                  
+
                   // 视觉反馈
                   btn.style.background = "#4a9eff";
                   setTimeout(() => {
@@ -248,7 +248,7 @@ app.registerExtension({
                 const isOpen = container.style.display === "block";
                 container.style.display = isOpen ? "none" : "block";
                 const catName = title.textContent.match(/[📝🎬📦🛠️].+?\(/)[0].slice(0, -1).trim();
-                title.textContent = isOpen 
+                title.textContent = isOpen
                   ? `▶ ${catName} ${title.textContent.match(/\(\d+\)/)[0]}`
                   : `▼ ${catName} ${title.textContent.match(/\(\d+\)/)[0]}`;
               }
@@ -284,7 +284,7 @@ app.registerExtension({
         }, 300);
 
         searchInput.addEventListener("input", (e) => handleSearch(e.target.value));
-        
+
         clearBtn.addEventListener("click", () => {
           searchInput.value = "";
           clearBtn.style.display = "none";
@@ -306,7 +306,7 @@ app.registerExtension({
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
         e.stopPropagation();
-        
+
         const sidebarButton = document.querySelector('[data-id="kuaipower-panel"]');
         if (sidebarButton) {
           sidebarButton.click();

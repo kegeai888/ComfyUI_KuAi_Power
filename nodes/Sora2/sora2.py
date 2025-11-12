@@ -99,8 +99,8 @@ class SoraQueryTask:
                 "api_base": ("STRING", {"default": "https://api.kuai.host", "tooltip": "API端点地址"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥"}),
                 "wait": ("BOOLEAN", {"default": True, "tooltip": "是否等待任务完成"}),
-                "poll_interval_sec": ("INT", {"default": 5, "min": 1, "max": 60, "tooltip": "轮询间隔(秒)"}),
-                "timeout_sec": ("INT", {"default": 600, "min": 5, "max": 7200, "tooltip": "总超时时间(秒)"}),
+                "poll_interval_sec": ("INT", {"default": 15, "min": 5, "max": 90, "tooltip": "轮询间隔(秒)"}),
+                "timeout_sec": ("INT", {"default": 1200, "min": 600, "max": 9600, "tooltip": "总超时时间(秒)"}),
             }
         }
 
@@ -180,7 +180,7 @@ class SoraCreateAndWait:
                 "watermark": ("BOOLEAN", {"default": False, "tooltip": "是否添加水印"}),
                 "create_timeout": ("INT", {"default": 120, "min": 5, "max": 600, "tooltip": "创建超时(秒)"}),
                 "wait_poll_interval_sec": ("INT", {"default": 5, "min": 1, "max": 60, "tooltip": "轮询间隔(秒)"}),
-                "wait_timeout_sec": ("INT", {"default": 600, "min": 5, "max": 7200, "tooltip": "等待超时(秒)"}),
+                "wait_timeout_sec": ("INT", {"default": 600, "min": 5, "max": 9600, "tooltip": "等待超时(秒)"}),
             }
         }
 
