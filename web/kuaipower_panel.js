@@ -7,6 +7,7 @@ app.registerExtension({
     const categoryNameMap = {
       "ScriptGenerator": "📝 脚本生成",
       "Sora2": "🎬 视频生成",
+      "Veo3": "🚀 Veo 视频生成",
       "Product": "📦 产品管理",
       "配套能力": "🛠️ 配套能力"
     };
