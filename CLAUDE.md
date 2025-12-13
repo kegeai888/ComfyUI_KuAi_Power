@@ -303,18 +303,29 @@ Prompt: "Add some flowers in the background."
 **AI 模型**: `deepseek-ocr`
 
 ##### CSVBatchReader
-**功能**: 读取 CSV 文件并解析为批量任务数据
-**输入**:
-- `csv_path` (STRING): CSV 文件路径
+**功能**: 读取 CSV 文件并解析为批量任务数据（支持文件上传和路径输入）
+**输入参数**:
+- `mode` (ENUM): 模式选择 - `upload` | `path`
+- `csv_file` (ENUM): 已上传的 CSV 文件（upload 模式）
+- `csv_path` (STRING): CSV 文件完整路径（path 模式）
 
 **返回**: `(批量任务数据)`
 **实现位置**: `nodes/Utils/csv_reader.py`
 
 **特点**:
-- 支持 UTF-8 编码
-- 自动验证文件格式
-- 跳过空行
-- 添加行号用于调试
+- **双模式支持**: upload 模式（从 ComfyUI input 目录）和 path 模式（直接输入路径）
+- **自动检测**: 自动扫描 input 目录中的 CSV 文件
+- **文件变更检测**: 使用 IS_CHANGED 方法自动检测文件修改
+- **输入验证**: 使用 VALIDATE_INPUTS 方法验证参数
+- **优雅降级**: folder_paths 不可用时自动切换到 path 模式
+- **UTF-8 编码**: 支持 UTF-8 和 UTF-8 BOM
+- **错误处理**: 详细的错误信息和文件验证
+
+**使用模式**:
+1. **Upload 模式**: 将 CSV 文件复制到 `ComfyUI/input/` 目录，从下拉菜单选择
+2. **Path 模式**: 直接输入 CSV 文件的完整路径（支持 Windows/macOS/Linux）
+
+**详细文档**: [CSV_UPLOAD_GUIDE.md](./CSV_UPLOAD_GUIDE.md)
 
 #### 6. 批量处理节点 (`KuAi/NanoBanana`)
 
@@ -902,20 +913,29 @@ MIT License
 ### 最新版本 (2025-12-13)
 
 #### 新增功能
-- ✅ **种子值支持**: NanoBanana 节点支持种子值控制，实现可复现生成
+- ✅ **种子值支持**: NanoBanana 节点支持种子值控制，实现可复现生成（INT32 范围）
 - ✅ **系统提示词**: 两个 NanoBanana 节点支持 `system_prompt` 参数
 - ✅ **模型特定配置**: 自动根据 gemini-3-pro-image-preview 和 gemini-2.5-flash-image 使用正确的 API 参数
 - ✅ **CSV 批量处理**: 新增 CSVBatchReader 和 NanoBananaBatchProcessor 节点
+- ✅ **CSV 文件上传**: CSVBatchReader 支持 upload 和 path 双模式
 - ✅ **批量文生图**: 支持通过 CSV 文件批量生成图像
 - ✅ **批量图生图**: 支持批量编辑图像（最多 6 张参考图）
 - ✅ **CSV 模板**: 提供 4 个预置 CSV 模板（空白、文生图、图生图、中文）
 - ✅ **自动保存**: 批量处理自动保存图像和元数据
 - ✅ **详细报告**: 批量处理提供成功/失败统计和错误详情
 
+#### API 修复
+- ✅ **种子值范围**: 修正为 INT32 (0-2147483647)，符合 Gemini API 要求
+- ✅ **参数命名**: 修正为 camelCase (aspectRatio, imageSize)
+- ✅ **参数结构**: imageConfig 现在正确嵌套在 generationConfig 内部
+- ✅ **分辨率验证**: 通过实际测试验证 1K/2K/4K 分辨率正常工作
+
 #### 文档更新
 - ✅ 新增 [NANOBANA_BATCH_GUIDE.md](./NANOBANA_BATCH_GUIDE.md) - 批量处理详细指南
 - ✅ 新增 [CSV_TEMPLATES_README.md](./workflows/CSV_TEMPLATES_README.md) - CSV 模板使用说明
 - ✅ 新增 [CSV_QUICK_REFERENCE.md](./workflows/CSV_QUICK_REFERENCE.md) - CSV 快速参考
+- ✅ 新增 [CSV_UPLOAD_GUIDE.md](./CSV_UPLOAD_GUIDE.md) - CSV 文件上传指南
+- ✅ 新增 [NANOBANA_API_FIX.md](./NANOBANA_API_FIX.md) - API 参数修复报告
 - ✅ 更新 README.md - 添加批量处理功能介绍和模板下载链接
 
 ### 历史版本
