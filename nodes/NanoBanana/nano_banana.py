@@ -142,20 +142,46 @@ class NanoBananaAIO:
     def _generate_single_image(self, api_base, api_key, model_name, prompt, reference_images_base64,
                                aspect_ratio, image_size, temperature, use_search, timeout):
         """生成单张图像"""
-        endpoint = api_base.rstrip("/") + "/v1/images/generate"
+        # 使用 Google Gemini API 格式: /v1beta/models/{model}:generateContent
+        endpoint = api_base.rstrip("/") + f"/v1beta/models/{model_name}:generateContent"
 
-        # 构建请求
-        payload = {
-            "model": model_name,
-            "prompt": prompt,
-            "aspect_ratio": aspect_ratio,
-            "image_size": image_size,
+        # 构建 contents（Gemini API 格式）
+        contents = []
+
+        # 添加参考图像（如果有）
+        for img_base64 in reference_images_base64:
+            contents.append({
+                "inline_data": {
+                    "mime_type": "image/jpeg",
+                    "data": img_base64
+                }
+            })
+
+        # 添加文本提示词
+        contents.append({"text": prompt})
+
+        # 构建 generation_config
+        generation_config = {
             "temperature": float(temperature),
-            "use_search": bool(use_search),
+            "response_modalities": ["TEXT", "IMAGE"]
         }
 
-        if reference_images_base64:
-            payload["reference_images"] = reference_images_base64
+        # 构建 image_config
+        image_config = {
+            "aspect_ratio": aspect_ratio,
+            "image_size": image_size
+        }
+
+        # 构建请求 payload（Gemini API 格式）
+        payload = {
+            "contents": [{"parts": contents}],
+            "generationConfig": generation_config,
+            "imageConfig": image_config
+        }
+
+        # 如果启用搜索，添加 tools
+        if use_search:
+            payload["tools"] = [{"googleSearch": {}}]
 
         try:
             resp = requests.post(
@@ -169,13 +195,38 @@ class NanoBananaAIO:
         except Exception as e:
             return self._handle_error(f"API 调用失败: {str(e)}")
 
-        # 解析响应
-        image_base64 = data.get("image_base64") or data.get("image")
-        thinking = data.get("thinking", "")
-        grounding_sources = data.get("grounding_sources", "")
+        # 解析 Gemini API 响应格式
+        try:
+            candidates = data.get("candidates", [])
+            if not candidates:
+                return self._handle_error("API 返回的 candidates 为空")
 
-        if not image_base64:
-            return self._handle_error(f"响应中缺少图像数据: {json.dumps(data, ensure_ascii=False)}")
+            candidate = candidates[0]
+            content = candidate.get("content", {})
+            parts = content.get("parts", [])
+
+            # 提取图像和文本
+            image_base64 = None
+            thinking = ""
+
+            for part in parts:
+                # 检查 inline_data（图像）
+                if "inlineData" in part or "inline_data" in part:
+                    inline_data = part.get("inlineData") or part.get("inline_data")
+                    image_base64 = inline_data.get("data")
+                # 检查 text（文本）
+                elif "text" in part:
+                    thinking += part.get("text", "")
+
+            if not image_base64:
+                return self._handle_error(f"响应中缺少图像数据: {json.dumps(data, ensure_ascii=False)}")
+
+            # 提取 grounding 信息
+            grounding_metadata = candidate.get("groundingMetadata", )
+            grounding_sources = self._extract_grounding_info(grounding_metadata, thinking)
+
+        except Exception as e:
+            return self._handle_error(f"解析响应失败: {str(e)}")
 
         # 解码 base64 图像
         try:
@@ -227,6 +278,30 @@ class NanoBananaAIO:
         combined_grounding = "\n\n---\n\n".join(all_grounding)
 
         return (combined_images, combined_thinking, combined_grounding)
+
+    def _extract_grounding_info(self, grounding_metadata, text_content):
+        """提取 grounding 信息"""
+        if not grounding_metadata:
+            return text_content
+
+        lines = [text_content, "\n\n----\n## Grounding Sources\n"]
+
+        # 提取搜索查询
+        web_search_queries = grounding_metadata.get("webSearchQueries", [])
+        if web_search_queries:
+            lines.append(f"\n**Web Search Queries:** {', '.join(web_search_queries)}\n")
+
+        # 提取 grounding chunks
+        grounding_chunks = grounding_metadata.get("groundingChunks", [])
+        if grounding_chunks:
+            lines.append("\n### Sources\n")
+            for i, chunk in enumerate(grounding_chunks, start=1):
+                web = chunk.get("web", {})
+                uri = web.get("uri", "")
+                title = web.get("title", "Source")
+                lines.append(f"{i}. [{title}]({uri})\n")
+
+        return "".join(lines)
 
 
 class NanoBananaMultiTurnChat:
@@ -304,37 +379,67 @@ class NanoBananaMultiTurnChat:
             if not api_key:
                 return self._handle_error("未配置 API Key")
 
-            endpoint = api_base.rstrip("/") + "/v1/chat/images"
+            # 使用 Gemini Chat API 格式
+            endpoint = api_base.rstrip("/") + f"/v1beta/models/{model_name}:streamGenerateContent"
 
-            # 准备当前消息
-            current_message = {
-                "role": "user",
-                "content": prompt
-            }
+            # 构建 contents（Gemini Chat API 格式）
+            contents = []
 
-            # 处理图像
+            # 添加历史对话
+            for msg in self.conversation_history:
+                parts = []
+                # 添加图像（如果有）
+                if "image_base64" in msg:
+                    parts.append({
+                        "inline_data": {
+                            "mime_type": "image/jpeg",
+                            "data": msg["image_base64"]
+                        }
+                    })
+                # 添加文本
+                parts.append({"text": msg["content"]})
+                contents.append({"role": msg["role"], "parts": parts})
+
+            # 添加当前消息
+            current_parts = []
+
             # 1. 如果是首次对话且有输入图像，使用输入图像
             if len(self.conversation_history) == 0 and image_input is not None:
                 try:
                     pil_img = to_pil_from_comfy(image_input)
                     image_base64 = pil_to_base64(pil_img, format="JPEG")
-                    current_message["image_base64"] = image_base64
+                    current_parts.append({
+                        "inline_data": {
+                            "mime_type": "image/jpeg",
+                            "data": image_base64
+                        }
+                    })
                 except Exception as e:
                     print(f"[NanoBanana] 警告: 转换输入图像失败: {e}")
             # 2. 如果有上一轮生成的图像，使用它
             elif self.last_image_base64:
-                current_message["image_base64"] = self.last_image_base64
+                current_parts.append({
+                    "inline_data": {
+                        "mime_type": "image/jpeg",
+                        "data": self.last_image_base64
+                    }
+                })
 
-            # 构建完整的消息历史
-            messages = list(self.conversation_history) + [current_message]
+            # 添加当前提示词
+            current_parts.append({"text": prompt})
+            contents.append({"role": "user", "parts": current_parts})
 
-            # 构建请求
+            # 构建请求 payload
             payload = {
-                "model": model_name,
-                "messages": messages,
-                "aspect_ratio": aspect_ratio,
-                "image_size": image_size,
-                "temperature": float(temperature),
+                "contents": contents,
+                "generationConfig": {
+                    "temperature": float(temperature),
+                    "response_modalities": ["TEXT", "IMAGE"]
+                },
+                "imageConfig": {
+                    "aspect_ratio": aspect_ratio,
+                    "image_size": image_size
+                }
             }
 
             try:
@@ -349,13 +454,36 @@ class NanoBananaMultiTurnChat:
             except Exception as e:
                 return self._handle_error(f"API 调用失败: {str(e)}")
 
-            # 解析响应
-            image_base64 = data.get("image_base64") or data.get("image")
-            response_text = data.get("response", "")
-            metadata = data.get("metadata", "")
+            # 解析 Gemini API 响应
+            try:
+                candidates = data.get("candidates", [])
+                if not candidates:
+                    return self._handle_error("API 返回的 candidates 为空")
 
-            if not image_base64:
-                return self._handle_error(f"响应中缺少图像数据: {json.dumps(data, ensure_ascii=False)}")
+                candidate = candidates[0]
+                content = candidate.get("content", {})
+                parts = content.get("parts", [])
+
+                # 提取图像和文本
+                image_base64 = None
+                response_text = ""
+
+                for part in parts:
+                    if "inlineData" in part or "inline_data" in part:
+                        inline_data = part.get("inlineData") or part.get("inline_data")
+                        image_base64 = inline_data.get("data")
+                    elif "text" in part:
+                        response_text += part.get("text", "")
+
+                if not image_base64:
+                    return self._handle_error(f"响应中缺少图像数据: {json.dumps(data, ensure_ascii=False)}")
+
+                # 提取元数据
+                finish_reason = candidate.get("finishReason", "UNKNOWN")
+                metadata = f"Finish Reason: {finish_reason}"
+
+            except Exception as e:
+                return self._handle_error(f"解析响应失败: {str(e)}")
 
             # 解码图像
             try:
@@ -364,9 +492,19 @@ class NanoBananaMultiTurnChat:
                 return self._handle_error(f"解码图像失败: {str(e)}")
 
             # 更新对话历史和图像状态
-            self.conversation_history.append(current_message)
+            # 保存用户消息
+            user_msg = {"role": "user", "content": prompt}
+            if len(self.conversation_history) == 0 and image_input is not None:
+                pil_img = to_pil_from_comfy(image_input)
+                user_msg["image_base64"] = pil_to_base64(pil_img, format="JPEG")
+            elif self.last_image_base64:
+                user_msg["image_base64"] = self.last_image_base64
+
+            self.conversation_history.append(user_msg)
+
+            # 保存助手响应
             self.conversation_history.append({
-                "role": "assistant",
+                "role": "model",  # Gemini 使用 "model" 而不是 "assistant"
                 "content": response_text if response_text else "Image generated",
                 "image_base64": image_base64
             })

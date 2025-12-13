@@ -8,6 +8,7 @@ app.registerExtension({
       "ScriptGenerator": "📝 脚本生成",
       "Sora2": "🎬 Sora2 视频生成",
       "Veo3": "🚀 Veo3.1 视频生成",
+      "NanoBanana": "🍌 Nano Banana 图像生成",
       "Product": "📦 产品管理",
       "配套能力": "🛠️ 配套能力"
     };
@@ -240,14 +241,16 @@ app.registerExtension({
                   if (c !== container) {
                     c.style.display = "none";
                     const t = c.previousSibling;
-                    const catName = t.textContent.match(/[📝🎬📦🛠️].+?\(/)[0].slice(0, -1).trim();
+                    // 使用更通用的正则，匹配任何 emoji 开头的分类名
+                    const catName = t.textContent.match(/^[▶▼]\s*(.+?)\s*\(/)[1].trim();
                     t.textContent = `▶ ${catName} ${t.textContent.match(/\(\d+\)/)[0]}`;
                   }
                 });
                 // 切换当前
                 const isOpen = container.style.display === "block";
                 container.style.display = isOpen ? "none" : "block";
-                const catName = title.textContent.match(/[📝🎬📦🛠️].+?\(/)[0].slice(0, -1).trim();
+                // 使用更通用的正则，匹配任何 emoji 开头的分类名
+                const catName = title.textContent.match(/^[▶▼]\s*(.+?)\s*\(/)[1].trim();
                 title.textContent = isOpen
                   ? `▶ ${catName} ${title.textContent.match(/\(\d+\)/)[0]}`
                   : `▼ ${catName} ${title.textContent.match(/\(\d+\)/)[0]}`;
