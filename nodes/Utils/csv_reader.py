@@ -19,7 +19,7 @@ class CSVBatchReader:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("批量任务数据",)
     FUNCTION = "read_csv"
-    CATEGORY = "KuAi/Utils"
+    CATEGORY = "KuAi/配套能力"
 
     @classmethod
     def INPUT_LABELS(cls):
