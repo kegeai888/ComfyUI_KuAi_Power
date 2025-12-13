@@ -194,16 +194,16 @@ class NanoBananaAIO:
 
         # 根据模型类型添加不同的配置
         if model_name == "gemini-3-pro-image-preview":
-            # gemini-3-pro-image-preview 支持 imageConfig
+            # gemini-3-pro-image-preview 支持 imageConfig（使用 camelCase）
             payload["imageConfig"] = {
-                "aspect_ratio": aspect_ratio,
-                "image_size": image_size
+                "aspectRatio": aspect_ratio,
+                "imageSize": image_size
             }
         elif model_name == "gemini-2.5-flash-image":
             # gemini-2.5-flash-image 使用不同的配置方式
-            # 将 aspect_ratio 添加到 generation_config 中
-            generation_config["aspect_ratio"] = aspect_ratio
-            # gemini-2.5-flash-image 不支持 image_size 参数
+            # 将 aspectRatio 添加到 generation_config 中（使用 camelCase）
+            generation_config["aspectRatio"] = aspect_ratio
+            # gemini-2.5-flash-image 不支持 imageSize 参数
             payload["generationConfig"] = generation_config
 
         # 如果启用搜索，添加 tools（仅 gemini-3-pro-image-preview 支持）
@@ -489,14 +489,14 @@ class NanoBananaMultiTurnChat:
 
             # 根据模型类型添加不同的配置
             if model_name == "gemini-3-pro-image-preview":
-                # gemini-3-pro-image-preview 支持 imageConfig
+                # gemini-3-pro-image-preview 支持 imageConfig（使用 camelCase）
                 payload["imageConfig"] = {
-                    "aspect_ratio": aspect_ratio,
-                    "image_size": image_size
+                    "aspectRatio": aspect_ratio,
+                    "imageSize": image_size
                 }
             elif model_name == "gemini-2.5-flash-image":
-                # gemini-2.5-flash-image 使用不同的配置方式
-                generation_config["aspect_ratio"] = aspect_ratio
+                # gemini-2.5-flash-image 使用不同的配置方式（使用 camelCase）
+                generation_config["aspectRatio"] = aspect_ratio
                 payload["generationConfig"] = generation_config
 
             try:
