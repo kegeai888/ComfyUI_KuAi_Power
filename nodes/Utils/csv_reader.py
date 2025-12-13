@@ -28,26 +28,23 @@ class CSVBatchReader:
             except Exception as e:
                 print(f"[CSVBatchReader] 无法读取 input 目录: {e}")
 
-        # 如果没有文件，提供一个提示选项
+        # 如果没有文件，提供一个空字符串作为默认值
         if not csv_files:
-            csv_files = ["请先上传CSV文件到input目录"]
+            csv_files = [""]
 
         return {
-            "required": {
-                "csv_file": (sorted(csv_files), {"tooltip": "从下拉菜单选择已上传的 CSV 文件"}),
-            },
+            "required": {},
             "optional": {
+                "csv_file": (sorted(csv_files), {"default": csv_files[0] if csv_files else "", "tooltip": "从下拉菜单选择已上传的 CSV 文件"}),
                 "upload": ("IMAGEUPLOAD", {"tooltip": "点击上传 CSV 文件（上传后需刷新节点）"}),
                 "csv_path": ("STRING", {"default": "", "multiline": False, "tooltip": "或者直接输入 CSV 文件的完整路径"}),
             }
         }
 
     @classmethod
-    def VALIDATE_INPUTS(cls, csv_file=None, csv_path=""):
-        """验证输入参数"""
-        # 如果两个参数都没有提供
-        if (not csv_file or csv_file == "") and (not csv_path or csv_path.strip() == ""):
-            return "请上传 CSV 文件或输入文件路径"
+    def VALIDATE_INPUTS(cls, csv_file=None, csv_path="", upload=None):
+        """验证输入参数 - 在节点创建时允许空值"""
+        # 允许节点创建，在执行时再检查
         return True
 
     RETURN_TYPES = ("STRING",)
@@ -93,6 +90,10 @@ class CSVBatchReader:
             csv_path: 直接输入的文件路径
         """
         try:
+            # 检查是否提供了有效的输入
+            if (not csv_file or csv_file.strip() == "") and (not csv_path or csv_path.strip() == ""):
+                raise ValueError("请上传 CSV 文件或输入文件路径。\n\n使用方法：\n1. 点击 'upload' 上传文件，然后刷新节点\n2. 或在 'csv_path' 中输入完整路径")
+
             # 确定文件路径（优先使用 csv_file）
             file_path = None
 
