@@ -1,6 +1,6 @@
 # ComfyUI KuAi Power
 
-ComfyUI 节点扩展，提供对 Sora2 和 Veo 视频生成模型以及 AI 脚本生成功能的支持。
+ComfyUI 节点扩展，提供对 Sora2 和 Veo 视频生成模型、Nano Banana 图像生成以及 AI 脚本生成功能的支持。
 
 > **API 服务**: [kuai.host](https://api.kuai.host/register?aff=z2C8) | **国内镜像**: [v.kuai.host](https://v.kuai.host/) | **视频教程**: [Bilibili](https://www.bilibili.com/video/BV1umCjBqEpt/)
 
@@ -59,6 +59,14 @@ pip install -r requirements.txt
 | **📦 产品信息构建器** | 将产品信息结构化，为 AI 生成做准备。 |
 | **🤖 AI 生成提示词** | 根据产品信息，调用 AI 生成专业级的 Sora 提示词。 |
 
+### 🍌 Nano Banana 图像生成 (`KuAi/NanoBanana`)
+基于 Google Gemini 模型的多模态图像生成，支持文生图、图生图和多轮对话。
+
+| 节点名称 | 功能简介 |
+| :--- | :--- |
+| **🍌 Nano Banana 多功能** | 统一的多模态图像生成接口，支持单/多图生成、参考图、搜索增强。 |
+| **🍌 Nano Banana 多轮对话** | 支持基于对话历史的迭代图像生成和编辑。 |
+
 ### 🛠️ 其他工具
 
 | 节点名称 | 分类 | 功能简介 |
@@ -80,6 +88,16 @@ pip install -r requirements.txt
 LoadImage → UploadToImageHost → ProductInfoBuilder → SoraPromptFromProduct → SoraCreateAndWait
 ```
 
+### 示例 3: Nano Banana 图像生成
+```
+NanoBananaAIO → (输入提示词和参数) → (获取图像 + 思考过程 + 引用来源)
+```
+
+### 示例 4: 多轮对话图像编辑
+```
+NanoBananaMultiTurnChat → "Create a perfume bottle" → "Make it elegant" → "Add flowers"
+```
+
 ---
 
 ## 🔧 开发与排错
@@ -89,10 +107,13 @@ LoadImage → UploadToImageHost → ProductInfoBuilder → SoraPromptFromProduct
 ComfyUI_KuAi_Power/
 ├── nodes/
 │   ├── Sora2/             # Sora2 节点
-│   └── Veo3/              # Veo 节点
+│   ├── Veo3/              # Veo 节点
+│   ├── NanoBanana/        # Nano Banana 图像生成节点
+│   └── Utils/             # 工具节点
 ├── web/
 │   └── kuaipower_panel.js # 前端快捷面板
 ├── __init__.py
+├── CLAUDE.md              # 详细技术文档
 └── README.md
 ```
 

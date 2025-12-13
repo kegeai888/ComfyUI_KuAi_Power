@@ -1,0 +1,395 @@
+"""Nano Banana 节点实现 - 基于 kuai.host API (使用 base64 图片传递)"""
+
+import io
+import json
+import time
+import base64
+import torch
+import numpy as np
+import requests
+from PIL import Image
+
+from ..Sora2.kuai_utils import (
+    env_or,
+    to_pil_from_comfy,
+    http_headers_json,
+    raise_for_bad_status
+)
+
+
+def pil_to_base64(pil_image: Image.Image, format: str = "PNG") -> str:
+    """将 PIL 图像转换为 base64 字符串"""
+    buffer = io.BytesIO()
+    pil_image.save(buffer, format=format)
+    buffer.seek(0)
+    return base64.b64encode(buffer.read()).decode('utf-8')
+
+
+def base64_to_pil(base64_str: str) -> Image.Image:
+    """将 base64 字符串转换为 PIL 图像"""
+    image_bytes = base64.b64decode(base64_str)
+    return Image.open(io.BytesIO(image_bytes)).convert("RGB")
+
+
+class NanoBananaAIO:
+    """Nano Banana 多功能节点：支持单/多图生成、grounding、搜索和 thinking 能力"""
+
+    def __init__(self):
+        self._preview_warning_shown = False
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        model_list = ["gemini-3-pro-image-preview", "gemini-2.0-flash-exp"]
+        return {
+            "required": {
+                "model_name": (model_list, {"default": model_list[0], "tooltip": "选择 Gemini 模型"}),
+                "prompt": ("STRING", {"multiline": True, "default": "A futuristic nano banana dish", "tooltip": "图像生成提示词"}),
+                "image_count": ("INT", {"default": 1, "min": 1, "max": 10, "step": 1, "tooltip": "生成图像数量"}),
+                "use_search": ("BOOLEAN", {"default": True, "tooltip": "启用网络搜索增强"}),
+            },
+            "optional": {
+                "image_1": ("IMAGE", {"tooltip": "参考图1"}),
+                "image_2": ("IMAGE", {"tooltip": "参考图2"}),
+                "image_3": ("IMAGE", {"tooltip": "参考图3"}),
+                "image_4": ("IMAGE", {"tooltip": "参考图4"}),
+                "image_5": ("IMAGE", {"tooltip": "参考图5"}),
+                "image_6": ("IMAGE", {"tooltip": "参考图6"}),
+                "aspect_ratio": (["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
+                                {"default": "1:1", "tooltip": "图像宽高比"}),
+                "image_size": (["1K", "2K", "4K"], {"default": "2K", "tooltip": "图像尺寸"}),
+                "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "tooltip": "生成温度"}),
+                "api_base": ("STRING", {"default": "https://api.kuai.host", "tooltip": "API 端点地址"}),
+                "api_key": ("STRING", {"default": "", "tooltip": "API 密钥"}),
+                "timeout": ("INT", {"default": 120, "min": 5, "max": 600, "tooltip": "超时时间(秒)"}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "STRING", "STRING")
+    RETURN_NAMES = ("图像", "思考过程", "引用来源")
+    FUNCTION = "generate_unified"
+    CATEGORY = "KuAi/NanoBanana"
+
+    @classmethod
+    def INPUT_LABELS(cls):
+        return {
+            "model_name": "模型",
+            "prompt": "提示词",
+            "image_count": "图像数量",
+            "use_search": "启用搜索",
+            "image_1": "参考图1",
+            "image_2": "参考图2",
+            "image_3": "参考图3",
+            "image_4": "参考图4",
+            "image_5": "参考图5",
+            "image_6": "参考图6",
+            "aspect_ratio": "宽高比",
+            "image_size": "尺寸",
+            "temperature": "温度",
+            "api_base": "API地址",
+            "api_key": "API密钥",
+            "timeout": "超时",
+        }
+
+    def _handle_error(self, message):
+        """统一错误处理"""
+        print(f"\033[91m[NanoBanana] 错误: {message}\033[0m")
+        return (torch.zeros(1, 64, 64, 3), "", "")
+
+    def generate_unified(self, model_name, prompt, image_count=1, use_search=True,
+                        image_1=None, image_2=None, image_3=None, image_4=None, image_5=None, image_6=None,
+                        aspect_ratio="1:1", image_size="2K", temperature=1.0,
+                        api_base="https://api.kuai.host", api_key="", timeout=120):
+        """统一生成接口"""
+        try:
+            # 验证参数
+            if not prompt or prompt.strip() == "":
+                return self._handle_error("提示词不能为空")
+
+            if image_count < 1 or image_count > 10:
+                return self._handle_error("图像数量必须在 1-10 之间")
+
+            # 获取 API Key
+            api_key = env_or(api_key, "KUAI_API_KEY")
+            if not api_key:
+                return self._handle_error("未配置 API Key，请设置 KUAI_API_KEY 环境变量或在节点中填写")
+
+            # 准备参考图像（转换为 base64）
+            reference_images_base64 = []
+            for img_tensor in [image_1, image_2, image_3, image_4, image_5, image_6]:
+                if img_tensor is not None:
+                    try:
+                        pil_img = to_pil_from_comfy(img_tensor)
+                        base64_str = pil_to_base64(pil_img, format="JPEG")
+                        reference_images_base64.append(base64_str)
+                    except Exception as e:
+                        print(f"[NanoBanana] 警告: 转换参考图失败: {e}")
+
+            # 根据图像数量选择生成方式
+            if image_count == 1:
+                return self._generate_single_image(
+                    api_base, api_key, model_name, prompt, reference_images_base64,
+                    aspect_ratio, image_size, temperature, use_search, timeout
+                )
+            else:
+                return self._generate_multiple_images(
+                    api_base, api_key, model_name, prompt, image_count, reference_images_base64,
+                    aspect_ratio, image_size, temperature, use_search, timeout
+                )
+
+        except Exception as e:
+            return self._handle_error(f"生成失败: {str(e)}")
+
+    def _generate_single_image(self, api_base, api_key, model_name, prompt, reference_images_base64,
+                               aspect_ratio, image_size, temperature, use_search, timeout):
+        """生成单张图像"""
+        endpoint = api_base.rstrip("/") + "/v1/images/generate"
+
+        # 构建请求
+        payload = {
+            "model": model_name,
+            "prompt": prompt,
+            "aspect_ratio": aspect_ratio,
+            "image_size": image_size,
+            "temperature": float(temperature),
+            "use_search": bool(use_search),
+        }
+
+        if reference_images_base64:
+            payload["reference_images"] = reference_images_base64
+
+        try:
+            resp = requests.post(
+                endpoint,
+                headers=http_headers_json(api_key),
+                data=json.dumps(payload),
+                timeout=int(timeout)
+            )
+            raise_for_bad_status(resp, "Nano Banana 生成失败")
+            data = resp.json()
+        except Exception as e:
+            return self._handle_error(f"API 调用失败: {str(e)}")
+
+        # 解析响应
+        image_base64 = data.get("image_base64") or data.get("image")
+        thinking = data.get("thinking", "")
+        grounding_sources = data.get("grounding_sources", "")
+
+        if not image_base64:
+            return self._handle_error(f"响应中缺少图像数据: {json.dumps(data, ensure_ascii=False)}")
+
+        # 解码 base64 图像
+        try:
+            pil_image = base64_to_pil(image_base64)
+        except Exception as e:
+            return self._handle_error(f"解码图像失败: {str(e)}")
+
+        # 转换为 tensor
+        image_np = np.array(pil_image).astype(np.float32) / 255.0
+        image_tensor = torch.from_numpy(image_np)[None,]
+
+        return (image_tensor, thinking, grounding_sources)
+
+    def _generate_multiple_images(self, api_base, api_key, model_name, prompt, image_count, reference_images_base64,
+                                  aspect_ratio, image_size, temperature, use_search, timeout):
+        """生成多张图像"""
+        generated_images = []
+        all_thinking = []
+        all_grounding = []
+
+        for i in range(image_count):
+            # 为每张图像添加序号
+            current_prompt = f"{prompt} (Image {i+1} of {image_count})"
+
+            image_tensor, thinking, grounding = self._generate_single_image(
+                api_base, api_key, model_name, current_prompt, reference_images_base64,
+                aspect_ratio, image_size, temperature, use_search, timeout
+            )
+
+            # 检查是否生成成功
+            if image_tensor.shape[1] == 64 and image_tensor.shape[2] == 64:
+                # 这是错误占位符，停止生成
+                break
+
+            generated_images.append(image_tensor)
+            all_thinking.append(thinking)
+            all_grounding.append(grounding)
+
+            # 避免请求过快
+            if i < image_count - 1:
+                time.sleep(1)
+
+        if not generated_images:
+            return self._handle_error("未能生成任何图像")
+
+        # 合并结果
+        combined_images = torch.cat(generated_images, dim=0)
+        combined_thinking = "\n\n---\n\n".join(all_thinking)
+        combined_grounding = "\n\n---\n\n".join(all_grounding)
+
+        return (combined_images, combined_thinking, combined_grounding)
+
+
+class NanoBananaMultiTurnChat:
+    """Nano Banana 多轮对话节点：支持基于对话历史的迭代图像生成和编辑"""
+
+    def __init__(self):
+        self.conversation_history = []
+        self.last_image_base64 = None  # 保存上一轮生成的图像 base64
+        self._preview_warning_shown = False
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        model_list = ["gemini-3-pro-image-preview", "gemini-2.0-flash-exp"]
+        return {
+            "required": {
+                "model_name": (model_list, {"default": model_list[0], "tooltip": "选择 Gemini 模型"}),
+                "prompt": ("STRING", {"multiline": True, "default": "Create an image of a clear perfume bottle sitting on a vanity.", "tooltip": "对话提示词"}),
+                "reset_chat": ("BOOLEAN", {"default": False, "tooltip": "重置对话历史"}),
+                "aspect_ratio": (["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
+                                {"default": "1:1", "tooltip": "图像宽高比"}),
+                "image_size": (["1K", "2K", "4K"], {"default": "2K", "tooltip": "图像尺寸"}),
+                "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "tooltip": "生成温度"}),
+            },
+            "optional": {
+                "image_input": ("IMAGE", {"tooltip": "初始参考图像"}),
+                "api_base": ("STRING", {"default": "https://api.kuai.host", "tooltip": "API 端点地址"}),
+                "api_key": ("STRING", {"default": "", "tooltip": "API 密钥"}),
+                "timeout": ("INT", {"default": 120, "min": 5, "max": 600, "tooltip": "超时时间(秒)"}),
+            }
+        }
+
+    RETURN_TYPES = ("IMAGE", "STRING", "STRING", "STRING")
+    RETURN_NAMES = ("图像", "响应文本", "元数据", "对话历史")
+    FUNCTION = "generate_multiturn_image"
+    CATEGORY = "KuAi/NanoBanana"
+
+    @classmethod
+    def INPUT_LABELS(cls):
+        return {
+            "model_name": "模型",
+            "prompt": "提示词",
+            "reset_chat": "重置对话",
+            "aspect_ratio": "宽高比",
+            "image_size": "尺寸",
+            "temperature": "温度",
+            "image_input": "参考图",
+            "api_base": "API地址",
+            "api_key": "API密钥",
+            "timeout": "超时",
+        }
+
+    def _handle_error(self, message):
+        """统一错误处理"""
+        print(f"\033[91m[NanoBanana] 错误: {message}\033[0m")
+        return (torch.zeros(1, 64, 64, 3), "", "", "")
+
+    def generate_multiturn_image(self, model_name, prompt, reset_chat=False,
+                                aspect_ratio="1:1", image_size="2K", temperature=1.0,
+                                image_input=None, api_base="https://api.kuai.host",
+                                api_key="", timeout=120):
+        """多轮对话图像生成"""
+        try:
+            # 重置对话
+            if reset_chat:
+                self.conversation_history = []
+                self.last_image_base64 = None
+                print("[NanoBanana] 对话已重置")
+
+            # 验证参数
+            if not prompt or prompt.strip() == "":
+                return self._handle_error("提示词不能为空")
+
+            # 获取 API Key
+            api_key = env_or(api_key, "KUAI_API_KEY")
+            if not api_key:
+                return self._handle_error("未配置 API Key")
+
+            endpoint = api_base.rstrip("/") + "/v1/chat/images"
+
+            # 准备当前消息
+            current_message = {
+                "role": "user",
+                "content": prompt
+            }
+
+            # 处理图像
+            # 1. 如果是首次对话且有输入图像，使用输入图像
+            if len(self.conversation_history) == 0 and image_input is not None:
+                try:
+                    pil_img = to_pil_from_comfy(image_input)
+                    image_base64 = pil_to_base64(pil_img, format="JPEG")
+                    current_message["image_base64"] = image_base64
+                except Exception as e:
+                    print(f"[NanoBanana] 警告: 转换输入图像失败: {e}")
+            # 2. 如果有上一轮生成的图像，使用它
+            elif self.last_image_base64:
+                current_message["image_base64"] = self.last_image_base64
+
+            # 构建完整的消息历史
+            messages = list(self.conversation_history) + [current_message]
+
+            # 构建请求
+            payload = {
+                "model": model_name,
+                "messages": messages,
+                "aspect_ratio": aspect_ratio,
+                "image_size": image_size,
+                "temperature": float(temperature),
+            }
+
+            try:
+                resp = requests.post(
+                    endpoint,
+                    headers=http_headers_json(api_key),
+                    data=json.dumps(payload),
+                    timeout=int(timeout)
+                )
+                raise_for_bad_status(resp, "多轮对话生成失败")
+                data = resp.json()
+            except Exception as e:
+                return self._handle_error(f"API 调用失败: {str(e)}")
+
+            # 解析响应
+            image_base64 = data.get("image_base64") or data.get("image")
+            response_text = data.get("response", "")
+            metadata = data.get("metadata", "")
+
+            if not image_base64:
+                return self._handle_error(f"响应中缺少图像数据: {json.dumps(data, ensure_ascii=False)}")
+
+            # 解码图像
+            try:
+                pil_image = base64_to_pil(image_base64)
+            except Exception as e:
+                return self._handle_error(f"解码图像失败: {str(e)}")
+
+            # 更新对话历史和图像状态
+            self.conversation_history.append(current_message)
+            self.conversation_history.append({
+                "role": "assistant",
+                "content": response_text if response_text else "Image generated",
+                "image_base64": image_base64
+            })
+            self.last_image_base64 = image_base64
+
+            # 转换为 tensor
+            image_np = np.array(pil_image).astype(np.float32) / 255.0
+            image_tensor = torch.from_numpy(image_np)[None,]
+
+            # 格式化对话历史（不包含 base64 数据，太长了）
+            chat_history_display = []
+            for msg in self.conversation_history:
+                display_msg = {
+                    "role": msg["role"],
+                    "content": msg["content"]
+                }
+                if "image_base64" in msg:
+                    display_msg["has_image"] = True
+                chat_history_display.append(display_msg)
+
+            chat_history_str = json.dumps(chat_history_display, ensure_ascii=False, indent=2)
+
+            return (image_tensor, response_text, metadata, chat_history_str)
+
+        except Exception as e:
+            return self._handle_error(f"生成失败: {str(e)}")
