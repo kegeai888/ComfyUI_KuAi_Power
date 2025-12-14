@@ -1,0 +1,11 @@
+{
+  "task_id": "video_601abb08-0d63-4952-9e69-cf9b2ed42977",
+  "prompt": "A beautiful sunset over the ocean",
+  "model": "sora-2",
+  "orientation": "landscape",
+  "size": "small",
+  "has_images": false,
+  "status": "queued",
+  "output_prefix": "batch_test_sunset",
+  "created_at": "2025-12-14 06:53:41"
+}

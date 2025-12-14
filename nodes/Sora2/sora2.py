@@ -300,11 +300,148 @@ class SoraText2Video:
         return (task_id, status, status_update_time)
 
 
+class SoraCreateCharacter:
+    """创建 Sora 角色"""
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "timestamps": ("STRING", {"default": "1,3", "tooltip": "时间范围(秒)，例如 '1,3' 表示1-3秒，范围差值最大3秒最小1秒"}),
+            },
+            "optional": {
+                "url": ("STRING", {"default": "", "multiline": False, "tooltip": "视频URL（url和from_task二选一）"}),
+                "from_task": ("STRING", {"default": "", "tooltip": "任务ID（url和from_task二选一）"}),
+                "api_base": ("STRING", {"default": "https://api.kuai.host", "tooltip": "API端点地址"}),
+                "api_key": ("STRING", {"default": "", "tooltip": "API密钥"}),
+                "timeout": ("INT", {"default": 60, "min": 5, "max": 300, "tooltip": "超时时间(秒)"}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING")
+    RETURN_NAMES = ("角色ID", "角色名称", "角色主页", "角色头像URL")
+    FUNCTION = "create_character"
+    CATEGORY = "KuAi/Sora2"
+
+    @classmethod
+    def INPUT_LABELS(cls):
+        return {
+            "timestamps": "时间范围",
+            "url": "视频URL",
+            "from_task": "任务ID",
+            "api_base": "API地址",
+            "api_key": "API密钥",
+            "timeout": "超时",
+        }
+
+    def create_character(self, timestamps, url="", from_task="", api_base="https://api.kuai.host", api_key="", timeout=60):
+        api_key = env_or(api_key, "KUAI_API_KEY")
+        endpoint = api_base.rstrip("/") + "/sora/v1/characters"
+
+        if not url and not from_task:
+            raise RuntimeError("请提供视频URL或任务ID（二选一）")
+
+        if url and from_task:
+            raise RuntimeError("url和from_task只能提供一个")
+
+        payload = {
+            "timestamps": timestamps,
+        }
+
+        if url:
+            payload["url"] = url
+        if from_task:
+            payload["from_task"] = from_task
+
+        try:
+            resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
+            raise_for_bad_status(resp, "Sora create character failed")
+            data = resp.json()
+        except Exception as e:
+            raise RuntimeError(f"创建角色失败: {str(e)}")
+
+        character_id = data.get("id", "")
+        username = data.get("username", "")
+        permalink = data.get("permalink", "")
+        profile_picture_url = data.get("profile_picture_url", "")
+
+        if not character_id:
+            raise RuntimeError(f"创建角色响应缺少角色ID: {json.dumps(data, ensure_ascii=False)}")
+
+        print(f"[SoraCreateCharacter] 角色创建成功: {character_id} (@{username})")
+        return (character_id, username, permalink, profile_picture_url)
+
+
+class SoraRemixVideo:
+    """编辑视频（Remix）"""
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "video_id": ("STRING", {"default": "", "tooltip": "已完成的视频ID（例如：video_xxx）"}),
+                "prompt": ("STRING", {"default": "", "multiline": True, "tooltip": "编辑提示词"}),
+            },
+            "optional": {
+                "api_base": ("STRING", {"default": "https://api.kuai.host", "tooltip": "API端点地址"}),
+                "api_key": ("STRING", {"default": "", "tooltip": "API密钥"}),
+                "timeout": ("INT", {"default": 120, "min": 5, "max": 600, "tooltip": "超时时间(秒)"}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING", "STRING", "STRING")
+    RETURN_NAMES = ("新任务ID", "状态", "原始视频ID")
+    FUNCTION = "remix"
+    CATEGORY = "KuAi/Sora2"
+
+    @classmethod
+    def INPUT_LABELS(cls):
+        return {
+            "video_id": "视频ID",
+            "prompt": "编辑提示词",
+            "api_base": "API地址",
+            "api_key": "API密钥",
+            "timeout": "超时",
+        }
+
+    def remix(self, video_id, prompt, api_base="https://api.kuai.host", api_key="", timeout=120):
+        api_key = env_or(api_key, "KUAI_API_KEY")
+
+        if not video_id:
+            raise RuntimeError("请提供视频ID")
+
+        if not prompt:
+            raise RuntimeError("请提供编辑提示词")
+
+        endpoint = api_base.rstrip("/") + f"/v1/videos/{video_id}/remix"
+
+        payload = {
+            "prompt": prompt,
+        }
+
+        try:
+            resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
+            raise_for_bad_status(resp, "Sora remix video failed")
+            data = resp.json()
+        except Exception as e:
+            raise RuntimeError(f"视频编辑失败: {str(e)}")
+
+        new_task_id = data.get("id", "")
+        status = data.get("status", "")
+        remixed_from = data.get("remixed_from_video_id", video_id)
+
+        if not new_task_id:
+            raise RuntimeError(f"编辑响应缺少任务ID: {json.dumps(data, ensure_ascii=False)}")
+
+        print(f"[SoraRemixVideo] 视频编辑任务创建成功: {new_task_id} (基于 {video_id})")
+        return (new_task_id, status, remixed_from)
+
+
 NODE_CLASS_MAPPINGS = {
     "SoraCreateVideo": SoraCreateVideo,
     "SoraQueryTask": SoraQueryTask,
     "SoraCreateAndWait": SoraCreateAndWait,
     "SoraText2Video": SoraText2Video,
+    "SoraCreateCharacter": SoraCreateCharacter,
+    "SoraRemixVideo": SoraRemixVideo,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -312,4 +449,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "SoraQueryTask": "🔍 查询任务状态",
     "SoraCreateAndWait": "⚡ 一键生成视频",
     "SoraText2Video": "📝 文生视频",
+    "SoraCreateCharacter": "👤 创建角色",
+    "SoraRemixVideo": "🎬 编辑视频",
 }

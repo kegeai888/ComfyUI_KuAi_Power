@@ -1,0 +1,11 @@
+{
+  "task_id": "video_5f41d0f5-558f-4c93-a3f5-537bfdd66c9f",
+  "prompt": "A cute cat playing with a colorful ball",
+  "model": "sora-2",
+  "orientation": "portrait",
+  "size": "small",
+  "has_images": false,
+  "status": "queued",
+  "output_prefix": "batch_test_cat",
+  "created_at": "2025-12-14 06:53:32"
+}

@@ -12,18 +12,28 @@ from .sora2 import (
     SoraQueryTask,
     SoraCreateAndWait,
     SoraText2Video,
+    SoraCreateCharacter,
+    SoraRemixVideo,
     NODE_CLASS_MAPPINGS as SORA2_MAPPINGS,
     NODE_DISPLAY_NAME_MAPPINGS as SORA2_DISPLAY_MAPPINGS
+)
+
+from .batch_processor import (
+    Sora2BatchProcessor,
+    NODE_CLASS_MAPPINGS as BATCH_MAPPINGS,
+    NODE_DISPLAY_NAME_MAPPINGS as BATCH_DISPLAY_MAPPINGS
 )
 
 # 合并所有节点映射
 NODE_CLASS_MAPPINGS = {}
 NODE_CLASS_MAPPINGS.update(SCRIPT_MAPPINGS)
 NODE_CLASS_MAPPINGS.update(SORA2_MAPPINGS)
+NODE_CLASS_MAPPINGS.update(BATCH_MAPPINGS)
 
 NODE_DISPLAY_NAME_MAPPINGS = {}
 NODE_DISPLAY_NAME_MAPPINGS.update(SCRIPT_DISPLAY_MAPPINGS)
 NODE_DISPLAY_NAME_MAPPINGS.update(SORA2_DISPLAY_MAPPINGS)
+NODE_DISPLAY_NAME_MAPPINGS.update(BATCH_DISPLAY_MAPPINGS)
 
 __all__ = [
     "NODE_CLASS_MAPPINGS",
@@ -36,4 +46,8 @@ __all__ = [
     "SoraQueryTask",
     "SoraCreateAndWait",
     "SoraText2Video",
+    "SoraCreateCharacter",
+    "SoraRemixVideo",
+    # Batch Processor
+    "Sora2BatchProcessor",
 ]
