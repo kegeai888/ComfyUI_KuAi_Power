@@ -1,6 +1,10 @@
 # ComfyUI KuAi Power
 
-ComfyUI 节点扩展，提供对 Sora2 和 Veo 视频生成模型、Nano Banana 图像生成以及 AI 脚本生成功能的支持。
+[![GitHub](https://img.shields.io/badge/GitHub-kegeai888%2FComfyUI__KuAi__Power-blue?logo=github)](https://github.com/kegeai888/ComfyUI_KuAi_Power)
+
+ComfyUI 节点扩展，提供对 Sora2、Veo3、Grok 视频生成模型、Nano Banana 图像生成以及 AI 脚本生成功能的支持。
+
+> **GitHub 仓库**: [https://github.com/kegeai888/ComfyUI_KuAi_Power](https://github.com/kegeai888/ComfyUI_KuAi_Power)
 
 > **API 服务**: [kuai.host](https://api.kuai.host/register?aff=z2C8) | **国内镜像**: [videos.kuai.host](https://videos.kuai.host/) | **国内镜像**: [nbnb.kuai.host](https://nbnb.kuai.host/) | **视频教程**: [Bilibili](https://www.bilibili.com/video/BV1umCjBqEpt/)
 
@@ -40,6 +44,24 @@ pip install -r requirements.txt
 | **🔍 Veo 查询任务** | 查询指定任务的状态和结果。 |
 | **⚡ Veo 一键文生视频** | 提交任务并自动等待视频生成完成。 |
 | **⚡ Veo 一键图生视频** | 提交带参考图的任务并等待完成。 |
+
+### 🤖 Grok 视频生成 (`KuAi/Grok`)
+xAI 推出的视频生成模型，支持文生视频和图生视频，提供 6 秒和 10 秒两种模型选择。
+
+| 节点名称 | 功能简介 |
+| :--- | :--- |
+| **🤖 Grok 创建视频** | 提交视频生成任务（支持可选图片）。 |
+| **📝 Grok 文生视频** | 纯文本生成视频，无需图片输入。 |
+| **🎬 Grok 图生视频** | 使用图片和提示词生成视频。 |
+| **🔍 Grok 查询视频** | 查询任务状态和结果。 |
+| **⚡ Grok 一键生成视频** | 提交任务并自动等待完成。 |
+| **⚡ Grok 文生视频（一键）** | 文生视频一键生成，自动等待完成。 |
+| **⚡ Grok 图生视频（一键）** | 图生视频一键生成，自动等待完成。 |
+| **📦 Grok 批量处理器** | 通过 CSV 文件批量生成视频。 |
+
+**模型选择**：
+- **grok-video-3 (6秒)**：标准模型，生成 6 秒视频
+- **grok-video-3-10s (10秒)**：10 秒视频专用模型
 
 ### 🎬 Sora2 视频生成 (`KuAi/Sora2`)
 强大的图生视频模型，支持视频生成、角色创建、视频编辑和批量处理。
