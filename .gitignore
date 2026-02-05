@@ -39,4 +39,28 @@ env/
 .DS_Store
 Thumbs.db
 
+# Environment
 .env
+
+# Large files and models
+*.ckpt
+*.safetensors
+*.bin
+*.pth
+*.pt
+*.onnx
+*.pb
+*.h5
+*.weights
+*.model
+*.pkl
+*.pickle
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Temporary files
+*.tmp
+*.temp
+*.log
