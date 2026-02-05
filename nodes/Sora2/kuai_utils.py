@@ -70,7 +70,14 @@ def ensure_list_from_urls(urls_str: str) -> typing.List[str]:
     return [p for p in parts if p]
 
 def http_headers_json(api_key: str = "") -> dict:
-    headers = {"Accept": "application/json", "Content-Type": "application/json"}
+    headers = {"Accept": "application/json", "Content-Type": "application/json; charset=utf-8"}
+    if api_key:
+        headers["Authorization"] = "Bearer " + api_key
+    return headers
+
+def http_headers_auth_only(api_key: str = "") -> dict:
+    """仅包含认证头，用于 requests.post(..., json=payload) 时避免编码冲突"""
+    headers = {}
     if api_key:
         headers["Authorization"] = "Bearer " + api_key
     return headers
