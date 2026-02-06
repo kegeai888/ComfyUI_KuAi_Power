@@ -39,12 +39,16 @@ class GrokBatchProcessor:
                 }),
             },
             "optional": {
+                "api_base": ("STRING", {
+                    "default": "https://api.kegeai.top",
+                    "tooltip": "API端点地址"
+                }),
                 "wait_for_completion": ("BOOLEAN", {
                     "default": False,
                     "tooltip": "是否等待所有任务完成（会花费较长时间）"
                 }),
                 "max_wait_time": ("INT", {
-                    "default": 600,
+                    "default": 1200,
                     "min": 60,
                     "max": 1800,
                     "tooltip": "单个任务最大等待时间（秒）"
@@ -65,6 +69,7 @@ class GrokBatchProcessor:
             "api_key": "API密钥",
             "output_dir": "输出目录",
             "delay_between_tasks": "任务间延迟",
+            "api_base": "API地址",
             "wait_for_completion": "等待完成",
             "max_wait_time": "最大等待时间",
             "poll_interval": "轮询间隔",
@@ -76,8 +81,8 @@ class GrokBatchProcessor:
     CATEGORY = "KuAi/Grok"
 
     def process_batch(self, batch_tasks, api_key="", output_dir="./output/grok_batch",
-                     delay_between_tasks=2.0, wait_for_completion=False,
-                     max_wait_time=600, poll_interval=10):
+                     delay_between_tasks=2.0, api_base="https://api.kegeai.top",
+                     wait_for_completion=False, max_wait_time=1200, poll_interval=10):
         """批量处理视频生成任务"""
         try:
             # 解析任务数据
@@ -115,7 +120,7 @@ class GrokBatchProcessor:
 
                     # 处理单个任务
                     task_info = self._process_single_task(
-                        task, idx, api_key, output_dir,
+                        task, idx, api_key, api_base, output_dir,
                         wait_for_completion, max_wait_time, poll_interval
                     )
 
@@ -152,7 +157,7 @@ class GrokBatchProcessor:
             print(f"\033[91m[GrokBatch] {error_msg}\033[0m")
             raise RuntimeError(error_msg)
 
-    def _process_single_task(self, task, task_idx, api_key, output_dir,
+    def _process_single_task(self, task, task_idx, api_key, api_base, output_dir,
                             wait_for_completion, max_wait_time, poll_interval):
         """处理单个任务"""
         # 必需参数
@@ -180,10 +185,12 @@ class GrokBatchProcessor:
         # 创建任务
         task_id, status, enhanced_prompt = self.creator.create(
             prompt=prompt,
+            model="grok-video-3 (6秒)",
             aspect_ratio=aspect_ratio,
             size=size,
             api_key=api_key,
-            image_urls=image_urls
+            image_urls=image_urls,
+            api_base=api_base
         )
 
         print(f"  任务ID: {task_id}")
@@ -207,7 +214,7 @@ class GrokBatchProcessor:
         if wait_for_completion:
             print(f"  等待视频生成完成...")
             task_info = self._wait_for_completion(
-                task_id, task_info, api_key, max_wait_time, poll_interval
+                task_id, task_info, api_key, api_base, max_wait_time, poll_interval
             )
 
         # 保存任务信息
@@ -217,7 +224,7 @@ class GrokBatchProcessor:
 
         return task_info
 
-    def _wait_for_completion(self, task_id, task_info, api_key, max_wait_time, poll_interval):
+    def _wait_for_completion(self, task_id, task_info, api_key, api_base, max_wait_time, poll_interval):
         """等待任务完成"""
         elapsed = 0
 
@@ -226,7 +233,7 @@ class GrokBatchProcessor:
             elapsed += poll_interval
 
             try:
-                _, status, video_url, enhanced_prompt = self.querier.query(task_id, api_key)
+                _, status, video_url, enhanced_prompt, _ = self.querier.query(task_id, api_key, api_base)
 
                 task_info["status"] = status
                 task_info["video_url"] = video_url
