@@ -97,6 +97,30 @@ class NanoBananaAIO:
             "timeout": "超时",
         }
 
+    def _extract_text_error_from_response(self, data):
+        """从 Gemini 响应中提取可读文本错误原因"""
+        try:
+            candidates = data.get("candidates", []) if isinstance(data, dict) else []
+            if not candidates:
+                return ""
+
+            candidate = candidates[0] or {}
+            content = candidate.get("content", {}) if isinstance(candidate, dict) else {}
+            parts = content.get("parts", []) if isinstance(content, dict) else []
+
+            texts = []
+            for part in parts:
+                if isinstance(part, dict) and "text" in part and str(part.get("text", "")).strip():
+                    texts.append(str(part.get("text", "")).strip())
+
+            if texts:
+                return "\n".join(texts)
+
+            finish_reason = str(candidate.get("finishReason", "")).strip()
+            return finish_reason
+        except Exception:
+            return ""
+
     def _handle_error(self, message):
         """统一错误处理"""
         print(f"\033[91m[NanoBanana] 错误: {message}\033[0m")
@@ -155,6 +179,8 @@ class NanoBananaAIO:
                     aspect_ratio, image_size, temperature, use_search, actual_seed, timeout
                 )
 
+        except RuntimeError:
+            raise
         except Exception as e:
             return self._handle_error(f"生成失败: {str(e)}")
 
@@ -255,12 +281,17 @@ class NanoBananaAIO:
                     thinking += part.get("text", "")
 
             if not image_base64:
-                return self._handle_error(f"响应中缺少图像数据: {json.dumps(data, ensure_ascii=False)}")
+                detail = self._extract_text_error_from_response(data)
+                if detail:
+                    raise RuntimeError(f"图像生成失败: {detail}")
+                raise RuntimeError(f"响应中缺少图像数据: {json.dumps(data, ensure_ascii=False)}")
 
             # 提取 grounding 信息
             grounding_metadata = candidate.get("groundingMetadata", )
             grounding_sources = self._extract_grounding_info(grounding_metadata, thinking)
 
+        except RuntimeError:
+            raise
         except Exception as e:
             return self._handle_error(f"解析响应失败: {str(e)}")
 
@@ -547,12 +578,17 @@ class NanoBananaMultiTurnChat:
                         response_text += part.get("text", "")
 
                 if not image_base64:
-                    return self._handle_error(f"响应中缺少图像数据: {json.dumps(data, ensure_ascii=False)}")
+                    detail = response_text.strip()
+                    if detail:
+                        raise RuntimeError(f"图像生成失败: {detail}")
+                    raise RuntimeError(f"响应中缺少图像数据: {json.dumps(data, ensure_ascii=False)}")
 
                 # 提取元数据
                 finish_reason = candidate.get("finishReason", "UNKNOWN")
                 metadata = f"Finish Reason: {finish_reason}"
 
+            except RuntimeError:
+                raise
             except Exception as e:
                 return self._handle_error(f"解析响应失败: {str(e)}")
 
@@ -600,5 +636,7 @@ class NanoBananaMultiTurnChat:
 
             return (image_tensor, response_text, metadata, chat_history_str)
 
+        except RuntimeError:
+            raise
         except Exception as e:
             return self._handle_error(f"生成失败: {str(e)}")
