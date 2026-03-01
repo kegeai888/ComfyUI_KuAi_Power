@@ -195,7 +195,7 @@ def test_parameter_validation():
                 print(f"   ❌ {param} (缺失)")
 
         # 检查可选参数
-        expected_optional = ['image_urls']
+        expected_optional = ['image_urls', 'custom_model']
         for param in expected_optional:
             if param in optional:
                 print(f"   ✅ {param} (可选)")

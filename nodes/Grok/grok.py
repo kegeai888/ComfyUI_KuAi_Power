@@ -26,7 +26,7 @@ class GrokCreateVideo:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)"], {
+                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -49,6 +49,10 @@ class GrokCreateVideo:
                     "multiline": True,
                     "tooltip": "参考图片URL（多个用逗号、分号或换行分隔）"
                 }),
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型（留空使用下拉模型）"
+                }),
                 "api_base": ("STRING", {
                     "default": "https://api.kegeai.top",
                     "tooltip": "API端点地址"
@@ -65,6 +69,7 @@ class GrokCreateVideo:
             "size": "分辨率",
             "api_key": "API密钥",
             "image_urls": "参考图片URL",
+            "custom_model": "自定义模型",
             "api_base": "API地址"
         }
 
@@ -73,7 +78,7 @@ class GrokCreateVideo:
     FUNCTION = "create"
     CATEGORY = "KuAi/Grok"
 
-    def create(self, prompt, model, aspect_ratio, size, api_key="", image_urls="", api_base="https://api.kegeai.top"):
+    def create(self, prompt, model, aspect_ratio, size, api_key="", image_urls="", api_base="https://api.kegeai.top", custom_model=""):
         """创建 Grok 视频生成任务"""
         api_key = env_or(api_key, "KUAI_API_KEY")
         if not api_key:
@@ -84,12 +89,13 @@ class GrokCreateVideo:
 
         # 提取实际的模型名称（去掉时长说明）
         actual_model = model.split(" (")[0] if " (" in model else model
+        effective_model = (custom_model or "").strip() or actual_model
 
         # 解析图片URL列表
         images = ensure_list_from_urls(image_urls) if image_urls else []
 
         payload = {
-            "model": actual_model,
+            "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
             "size": size,
@@ -226,7 +232,7 @@ class GrokCreateAndWait:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)"], {
+                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -248,6 +254,10 @@ class GrokCreateAndWait:
                     "default": "",
                     "multiline": True,
                     "tooltip": "参考图片URL（多个用逗号、分号或换行分隔）"
+                }),
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型（留空使用下拉模型）"
                 }),
                 "api_base": ("STRING", {
                     "default": "https://api.kegeai.top",
@@ -277,6 +287,7 @@ class GrokCreateAndWait:
             "size": "分辨率",
             "api_key": "API密钥",
             "image_urls": "参考图片URL",
+            "custom_model": "自定义模型",
             "api_base": "API地址",
             "max_wait_time": "最大等待时间",
             "poll_interval": "轮询间隔"
@@ -289,12 +300,19 @@ class GrokCreateAndWait:
 
     def create_and_wait(self, prompt, model, aspect_ratio, size, api_key="",
                        image_urls="", api_base="https://api.kegeai.top",
-                       max_wait_time=1200, poll_interval=10):
+                       max_wait_time=1200, poll_interval=10, custom_model=""):
         """创建 Grok 视频并等待完成"""
         # 创建任务
         creator = GrokCreateVideo()
         task_id, status, enhanced_prompt = creator.create(
-            prompt, model, aspect_ratio, size, api_key, image_urls, api_base
+            prompt=prompt,
+            model=model,
+            aspect_ratio=aspect_ratio,
+            size=size,
+            api_key=api_key,
+            image_urls=image_urls,
+            api_base=api_base,
+            custom_model=custom_model,
         )
 
         # 如果已经完成，直接返回
@@ -352,7 +370,7 @@ class GrokImage2Video:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)"], {
+                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -374,6 +392,10 @@ class GrokImage2Video:
                     "default": "https://api.kegeai.top",
                     "tooltip": "API端点地址"
                 }),
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型（留空使用下拉模型）"
+                }),
             }
         }
 
@@ -386,6 +408,7 @@ class GrokImage2Video:
             "aspect_ratio": "宽高比",
             "size": "分辨率",
             "api_key": "API密钥",
+            "custom_model": "自定义模型",
             "api_base": "API地址"
         }
 
@@ -394,7 +417,7 @@ class GrokImage2Video:
     FUNCTION = "create"
     CATEGORY = "KuAi/Grok"
 
-    def create(self, images, prompt, model, aspect_ratio, size, api_key="", api_base="https://api.kegeai.top"):
+    def create(self, images, prompt, model, aspect_ratio, size, api_key="", api_base="https://api.kegeai.top", custom_model=""):
         """创建 Grok 图生视频任务"""
         # 1. 解析 API key
         api_key = env_or(api_key, "KUAI_API_KEY")
@@ -412,9 +435,10 @@ class GrokImage2Video:
 
         # 提取实际的模型名称（去掉时长说明）
         actual_model = model.split(" (")[0] if " (" in model else model
+        effective_model = (custom_model or "").strip() or actual_model
 
         payload = {
-            "model": actual_model,
+            "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
             "size": size,
@@ -471,7 +495,7 @@ class GrokImage2VideoAndWait:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)"], {
+                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -492,6 +516,10 @@ class GrokImage2VideoAndWait:
                 "api_base": ("STRING", {
                     "default": "https://api.kegeai.top",
                     "tooltip": "API端点地址"
+                }),
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型（留空使用下拉模型）"
                 }),
                 "max_wait_time": ("INT", {
                     "default": 1200,
@@ -518,6 +546,7 @@ class GrokImage2VideoAndWait:
             "size": "分辨率",
             "api_key": "API密钥",
             "api_base": "API地址",
+            "custom_model": "自定义模型",
             "max_wait_time": "最大等待时间",
             "poll_interval": "轮询间隔"
         }
@@ -529,12 +558,19 @@ class GrokImage2VideoAndWait:
 
     def create_and_wait(self, images, prompt, model, aspect_ratio, size,
                        api_key="", api_base="https://api.kegeai.top",
-                       max_wait_time=1200, poll_interval=10):
+                       max_wait_time=1200, poll_interval=10, custom_model=""):
         """创建 Grok 图生视频并等待完成"""
         # 1. 创建任务
         creator = GrokImage2Video()
         task_id, status, enhanced_prompt, _ = creator.create(
-            images, prompt, model, aspect_ratio, size, api_key, api_base
+            images=images,
+            prompt=prompt,
+            model=model,
+            aspect_ratio=aspect_ratio,
+            size=size,
+            api_key=api_key,
+            api_base=api_base,
+            custom_model=custom_model,
         )
 
         # 2. 如果已经完成，直接返回
@@ -587,7 +623,7 @@ class GrokText2Video:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)"], {
+                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -609,6 +645,10 @@ class GrokText2Video:
                     "default": "https://api.kegeai.top",
                     "tooltip": "API端点地址"
                 }),
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型（留空使用下拉模型）"
+                }),
             }
         }
 
@@ -620,7 +660,8 @@ class GrokText2Video:
             "aspect_ratio": "宽高比",
             "size": "分辨率",
             "api_key": "API密钥",
-            "api_base": "API地址"
+            "api_base": "API地址",
+            "custom_model": "自定义模型"
         }
 
     RETURN_TYPES = ("STRING", "STRING", "STRING")
@@ -628,7 +669,7 @@ class GrokText2Video:
     FUNCTION = "create"
     CATEGORY = "KuAi/Grok"
 
-    def create(self, prompt, model, aspect_ratio, size, api_key="", api_base="https://api.kegeai.top"):
+    def create(self, prompt, model, aspect_ratio, size, api_key="", api_base="https://api.kegeai.top", custom_model=""):
         """创建 Grok 文生视频任务"""
         api_key = env_or(api_key, "KUAI_API_KEY")
         if not api_key:
@@ -639,9 +680,10 @@ class GrokText2Video:
 
         # 提取实际的模型名称（去掉时长说明）
         actual_model = model.split(" (")[0] if " (" in model else model
+        effective_model = (custom_model or "").strip() or actual_model
 
         payload = {
-            "model": actual_model,
+            "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
             "size": size,
@@ -688,7 +730,7 @@ class GrokText2VideoAndWait:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)"], {
+                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -709,6 +751,10 @@ class GrokText2VideoAndWait:
                 "api_base": ("STRING", {
                     "default": "https://api.kegeai.top",
                     "tooltip": "API端点地址"
+                }),
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型（留空使用下拉模型）"
                 }),
                 "max_wait_time": ("INT", {
                     "default": 1200,
@@ -734,6 +780,7 @@ class GrokText2VideoAndWait:
             "size": "分辨率",
             "api_key": "API密钥",
             "api_base": "API地址",
+            "custom_model": "自定义模型",
             "max_wait_time": "最大等待时间",
             "poll_interval": "轮询间隔"
         }
@@ -745,12 +792,18 @@ class GrokText2VideoAndWait:
 
     def create_and_wait(self, prompt, model, aspect_ratio, size,
                        api_key="", api_base="https://api.kegeai.top",
-                       max_wait_time=1200, poll_interval=10):
+                       max_wait_time=1200, poll_interval=10, custom_model=""):
         """创建 Grok 文生视频并等待完成"""
         # 1. 创建任务
         creator = GrokText2Video()
         task_id, status, enhanced_prompt = creator.create(
-            prompt, model, aspect_ratio, size, api_key, api_base
+            prompt=prompt,
+            model=model,
+            aspect_ratio=aspect_ratio,
+            size=size,
+            api_key=api_key,
+            api_base=api_base,
+            custom_model=custom_model,
         )
 
         # 2. 如果已经完成，直接返回
