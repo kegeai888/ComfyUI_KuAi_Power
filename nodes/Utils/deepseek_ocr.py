@@ -9,7 +9,7 @@ if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
 
 try:
-    from kuai_utils import env_or, http_headers_json, raise_for_bad_status
+    from kuai_utils import env_or, http_headers_json, extract_error_message_from_response
 except ImportError:
     import importlib.util
     utils_path = parent_dir / "kuai_utils.py"
@@ -18,7 +18,7 @@ except ImportError:
     spec.loader.exec_module(utils)
     env_or = utils.env_or
     http_headers_json = utils.http_headers_json
-    raise_for_bad_status = utils.raise_for_bad_status
+    extract_error_message_from_response = utils.extract_error_message_from_response
 
 class DeepseekOCRToPrompt:
     """Deepseek OCR 提取"""
@@ -70,8 +70,12 @@ class DeepseekOCRToPrompt:
 
         try:
             resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
-            raise_for_bad_status(resp, "Deepseek OCR failed")
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"OCR 调用失败: {detail}")
             data = resp.json()
+        except RuntimeError:
+            raise
         except Exception as e:
             raise RuntimeError(f"OCR 调用失败: {str(e)}")
 

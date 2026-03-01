@@ -245,11 +245,11 @@ class GrokBatchProcessor:
                     print(f"  视频URL: {video_url}")
                     task_info["completed_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
                     return task_info
-                elif status == "failed":
-                    raise RuntimeError(f"视频生成失败")
 
                 print(f"  进行中... 已等待 {elapsed}/{max_wait_time} 秒")
 
+            except RuntimeError:
+                raise
             except Exception as e:
                 print(f"  查询出错: {str(e)}")
                 # 继续等待

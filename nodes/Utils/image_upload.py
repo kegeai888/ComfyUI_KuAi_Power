@@ -9,7 +9,7 @@ if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
 
 try:
-    from kuai_utils import to_pil_from_comfy, save_image_to_buffer, http_headers_multipart, raise_for_bad_status
+    from kuai_utils import to_pil_from_comfy, save_image_to_buffer, http_headers_multipart, extract_error_message_from_response
 except ImportError:
     import importlib.util
     utils_path = parent_dir / "kuai_utils.py"
@@ -19,7 +19,7 @@ except ImportError:
     to_pil_from_comfy = utils.to_pil_from_comfy
     save_image_to_buffer = utils.save_image_to_buffer
     http_headers_multipart = utils.http_headers_multipart
-    raise_for_bad_status = utils.raise_for_bad_status
+    extract_error_message_from_response = utils.extract_error_message_from_response
 
 class UploadToImageHost:
     """上传图片到临时图床"""
@@ -69,8 +69,12 @@ class UploadToImageHost:
         
         try:
             resp = requests.post(upload_url, headers=http_headers_multipart(), files=files, timeout=int(timeout))
-            raise_for_bad_status(resp, "Upload image failed")
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"上传失败: {detail}")
             data = resp.json()
+        except RuntimeError:
+            raise
         except Exception as e:
             raise RuntimeError(f"上传失败: {str(e)}")
 

@@ -1,6 +1,6 @@
 import json
 import requests
-from .kuai_utils import env_or, http_headers_json, raise_for_bad_status
+from .kuai_utils import env_or, http_headers_json, extract_error_message_from_response
 
 # 默认系统提示词（使用 $ 语法）
 DEFAULT_SYSTEM_PROMPT = """# 身份认定
@@ -458,8 +458,12 @@ class SoraPromptFromProduct:
 
         try:
             resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
-            raise_for_bad_status(resp, "AI 提示词生成失败")
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"AI 提示词生成失败: {detail}")
             data = resp.json()
+        except RuntimeError:
+            raise
         except Exception as e:
             raise RuntimeError(f"AI 调用失败: {str(e)}")
 
