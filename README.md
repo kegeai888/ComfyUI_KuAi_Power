@@ -5,6 +5,8 @@
 ComfyUI 节点扩展，提供对 Sora2、Veo3、Grok 视频生成模型、Nano Banana 图像生成以及 AI 脚本生成功能的支持。
 
 > **GitHub 仓库**: [https://github.com/kegeai888/ComfyUI_KuAi_Power](https://github.com/kegeai888/ComfyUI_KuAi_Power)
+>
+> **仓库地址**: https://github.com/kegeai888/ComfyUI_KuAi_Power
 
 > **API 服务**: [kuai.host](https://api.kuai.host/register?aff=z2C8) | **国内镜像**: [videos.kuai.host](https://videos.kuai.host/) | **国内镜像**: [nbnb.kuai.host](https://nbnb.kuai.host/) | **视频教程**: [Bilibili](https://www.bilibili.com/video/BV1umCjBqEpt/)
 

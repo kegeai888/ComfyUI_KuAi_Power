@@ -64,3 +64,8 @@ Thumbs.db
 *.tmp
 *.temp
 *.log
+
+# Local/private files
+CLAUDE.md
+todo.md
+cc.sh
