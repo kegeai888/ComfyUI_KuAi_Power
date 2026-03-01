@@ -14,7 +14,7 @@ from ..Sora2.kuai_utils import (
     env_or,
     to_pil_from_comfy,
     http_headers_json,
-    raise_for_bad_status
+    extract_error_message_from_response,
 )
 
 
@@ -222,10 +222,14 @@ class NanoBananaAIO:
                 data=json.dumps(payload),
                 timeout=int(timeout)
             )
-            raise_for_bad_status(resp, "Nano Banana 生成失败")
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"Nano Banana 生成失败: {detail}")
             data = resp.json()
+        except RuntimeError:
+            raise
         except Exception as e:
-            return self._handle_error(f"API 调用失败: {str(e)}")
+            return self._handle_error(f"Nano Banana 生成失败: {str(e)}")
 
         # 解析 Gemini API 响应格式
         try:
@@ -512,10 +516,14 @@ class NanoBananaMultiTurnChat:
                     data=json.dumps(payload),
                     timeout=int(timeout)
                 )
-                raise_for_bad_status(resp, "多轮对话生成失败")
+                if resp.status_code >= 400:
+                    detail = extract_error_message_from_response(resp)
+                    raise RuntimeError(f"多轮对话生成失败: {detail}")
                 data = resp.json()
+            except RuntimeError:
+                raise
             except Exception as e:
-                return self._handle_error(f"API 调用失败: {str(e)}")
+                return self._handle_error(f"多轮对话生成失败: {str(e)}")
 
             # 解析 Gemini API 响应
             try:

@@ -2,7 +2,9 @@ import json
 import time
 import requests
 from .kuai_utils import (env_or, ensure_list_from_urls,
-                         http_headers_json, raise_for_bad_status, json_get)
+                         http_headers_json, json_get,
+                         SORA2_MODELS, get_duration_for_sora2_model,
+                         extract_error_message_from_response, extract_task_failure_detail)
 
 
 class SoraCreateVideo:
@@ -13,11 +15,15 @@ class SoraCreateVideo:
             "required": {
                 "images": ("STRING", {"default": "", "multiline": False, "tooltip": "图片URL列表，逗号分隔"}),
                 "prompt": ("STRING", {"default": "", "multiline": True, "tooltip": "视频提示词"}),
-                "model": (["sora-2-all", "sora-2-pro-all"], {"default": "sora-2-all", "tooltip": "模型选择"}),
+                "model": (SORA2_MODELS, {"default": "sora-2-all", "tooltip": "模型选择"}),
                 "duration_sora2": (["10", "15"], {"default": "10", "tooltip": "sora-2时长(秒)"}),
                 "duration_sora2pro": (["15", "25"], {"default": "15", "tooltip": "sora-2-pro时长(秒)"}),
             },
             "optional": {
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型名称（留空使用上方下拉选择，填写后覆盖下拉选择）"
+                }),
                 "api_base": ("STRING", {"default": "https://api.kuai.host", "tooltip": "API端点地址"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥"}),
                 "orientation": (["portrait", "landscape"], {"default": "portrait", "tooltip": "视频方向：竖屏/横屏"}),
@@ -40,6 +46,7 @@ class SoraCreateVideo:
             "model": "模型",
             "duration_sora2": "sora-2时长",
             "duration_sora2pro": "sora-2-pro时长",
+            "custom_model": "自定义模型",
             "api_base": "API地址",
             "api_key": "API密钥",
             "orientation": "方向",
@@ -49,6 +56,7 @@ class SoraCreateVideo:
         }
 
     def create(self, images, prompt, model="sora-2-all", duration_sora2="10", duration_sora2pro="15",
+               custom_model="",
                api_base="https://api.kuai.host", api_key="", orientation="portrait", size="large", watermark=False, timeout=120):
         api_key = env_or(api_key, "KUAI_API_KEY")
         endpoint = api_base.rstrip("/") + "/v1/video/create"
@@ -56,13 +64,20 @@ class SoraCreateVideo:
         images_list = ensure_list_from_urls(images)
         if not images_list:
             raise RuntimeError("请至少提供一个图片 URL")
-        
-        # 根据模型选择时长
-        duration = int(duration_sora2) if model == "sora-2-all" else int(duration_sora2pro)
-        
+
+        # 参数优先级：custom_model > model
+        actual_model = custom_model.strip() if custom_model.strip() else model
+
+        # 使用中心化函数获取时长
+        duration = get_duration_for_sora2_model(actual_model, duration_sora2, duration_sora2pro)
+
+        # 日志输出
+        if custom_model.strip():
+            print(f"[ComfyUI_KuAi_Power] 使用自定义模型: {actual_model}")
+
         payload = {
             "images": images_list,
-            "model": model,
+            "model": actual_model,
             "orientation": orientation,
             "prompt": prompt,
             "size": size,
@@ -72,8 +87,12 @@ class SoraCreateVideo:
 
         try:
             resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
-            raise_for_bad_status(resp, "Sora create failed")
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"创建视频失败: {detail}")
             data = resp.json()
+        except RuntimeError:
+            raise
         except Exception as e:
             raise RuntimeError(f"创建视频失败: {str(e)}")
 
@@ -127,8 +146,12 @@ class SoraQueryTask:
         def once():
             try:
                 resp = requests.get(endpoint, headers=http_headers_json(api_key), params={"id": task_id}, timeout=60)
-                raise_for_bad_status(resp, "Sora query failed")
+                if resp.status_code >= 400:
+                    detail = extract_error_message_from_response(resp)
+                    raise RuntimeError(f"查询失败: {detail}")
                 data = resp.json()
+            except RuntimeError:
+                raise
             except Exception as e:
                 raise RuntimeError(f"查询失败: {str(e)}")
 
@@ -136,6 +159,16 @@ class SoraQueryTask:
             video_url = data.get("video_url") or json_get(data, "detail.url") or json_get(data, "detail.downloadable_url") or ""
             gif_url = json_get(data, "detail.gif_url") or json_get(data, "detail.encodings.gif.path") or ""
             thumbnail_url = data.get("thumbnail_url") or json_get(data, "detail.encodings.thumbnail.path") or ""
+
+            if status == "failed":
+                fail_detail = extract_task_failure_detail(data)
+                if not fail_detail:
+                    fail_detail = json.dumps(data, ensure_ascii=False)
+                raise RuntimeError(f"任务失败: {fail_detail}")
+
+            if status == "completed" and not str(video_url).strip():
+                missing_detail = extract_task_failure_detail(data) or "任务已完成但未返回视频URL"
+                raise RuntimeError(f"查询失败: {missing_detail}")
 
             return status, video_url, gif_url, thumbnail_url, json.dumps(data, ensure_ascii=False)
 
@@ -168,11 +201,15 @@ class SoraCreateAndWait:
             "required": {
                 "images": ("STRING", {"default": "", "multiline": False, "tooltip": "图片URL列表，逗号分隔"}),
                 "prompt": ("STRING", {"default": "", "multiline": True, "tooltip": "视频提示词"}),
-                "model": (["sora-2-all", "sora-2-pro-all"], {"default": "sora-2-all", "tooltip": "模型选择"}),
+                "model": (SORA2_MODELS, {"default": "sora-2-all", "tooltip": "模型选择"}),
                 "duration_sora2": (["10", "15"], {"default": "10", "tooltip": "sora-2时长(秒)"}),
                 "duration_sora2pro": (["15", "25"], {"default": "15", "tooltip": "sora-2-pro时长(秒)"}),
             },
             "optional": {
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型名称（留空使用上方下拉选择，填写后覆盖下拉选择）"
+                }),
                 "api_base": ("STRING", {"default": "https://api.kuai.host", "tooltip": "API端点地址"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥"}),
                 "orientation": (["portrait", "landscape"], {"default": "portrait", "tooltip": "视频方向：竖屏/横屏"}),
@@ -192,11 +229,12 @@ class SoraCreateAndWait:
     @classmethod
     def INPUT_LABELS(cls):
         return {
-            "images": "图片列表",  # 显示为“图片列表”
-            "prompt": "提示词",    # 显示为“提示词”
-            "model": "模型",       # 显示为“模型”
+            "images": "图片列表",  # 显示为"图片列表"
+            "prompt": "提示词",    # 显示为"提示词"
+            "model": "模型",       # 显示为"模型"
             "duration_sora2": "sora-2时长",
             "duration_sora2pro": "sora-2-pro时长",
+            "custom_model": "自定义模型",
             "api_base": "API地址",
             "api_key": "API密钥",
             "orientation": "方向",
@@ -207,13 +245,15 @@ class SoraCreateAndWait:
             "wait_timeout_sec": "等待超时",
         }
 
-    def run(self, images, prompt, model="sora-2", duration_sora2="10", duration_sora2pro="15",
+    def run(self, images, prompt, model="sora-2-all", duration_sora2="10", duration_sora2pro="15",
+            custom_model="",
             api_base="https://api.kuai.host", api_key="", orientation="portrait", size="large", watermark=False,
             create_timeout=120, wait_poll_interval_sec=5, wait_timeout_sec=600):
 
         creator = SoraCreateVideo()
         task_id, status, _ = creator.create(
             images=images, prompt=prompt, model=model, duration_sora2=duration_sora2, duration_sora2pro=duration_sora2pro,
+            custom_model=custom_model,
             api_base=api_base, api_key=api_key, orientation=orientation, size=size,
             watermark=watermark, timeout=create_timeout
         )
@@ -223,7 +263,7 @@ class SoraCreateAndWait:
             task_id=task_id, api_base=api_base, api_key=api_key, wait=True,
             poll_interval_sec=wait_poll_interval_sec, timeout_sec=wait_timeout_sec
         )
-        
+
         return (status, video_url, gif_url, thumbnail_url, task_id)
 
 class SoraText2Video:
@@ -233,11 +273,15 @@ class SoraText2Video:
         return {
             "required": {
                 "prompt": ("STRING", {"default": "", "multiline": True, "tooltip": "视频提示词"}),
-                "model": (["sora-2-all", "sora-2-pro-all"], {"default": "sora-2-all", "tooltip": "模型选择"}),
+                "model": (SORA2_MODELS, {"default": "sora-2-all", "tooltip": "模型选择"}),
                 "duration_sora2": (["10", "15"], {"default": "10", "tooltip": "sora-2时长(秒)"}),
                 "duration_sora2pro": (["15", "25"], {"default": "15", "tooltip": "sora-2-pro时长(秒)"}),
             },
             "optional": {
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型名称（留空使用上方下拉选择，填写后覆盖下拉选择）"
+                }),
                 "api_base": ("STRING", {"default": "https://api.kuai.host", "tooltip": "API端点地址"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥"}),
                 "orientation": (["portrait", "landscape"], {"default": "portrait", "tooltip": "视频方向：竖屏/横屏"}),
@@ -259,6 +303,7 @@ class SoraText2Video:
             "model": "模型",
             "duration_sora2": "sora-2时长",
             "duration_sora2pro": "sora-2-pro时长",
+            "custom_model": "自定义模型",
             "api_base": "API地址",
             "api_key": "API密钥",
             "orientation": "方向",
@@ -267,15 +312,24 @@ class SoraText2Video:
             "timeout": "超时",
         }
 
-    def create(self, prompt, model="sora-2", duration_sora2="10", duration_sora2pro="15",
+    def create(self, prompt, model="sora-2-all", duration_sora2="10", duration_sora2pro="15",
+               custom_model="",
                api_base="https://api.kuai.host", api_key="", orientation="portrait", size="large", watermark=False, timeout=120):
         api_key = env_or(api_key, "KUAI_API_KEY")
         endpoint = api_base.rstrip("/") + "/v1/video/create"
-        
-        duration = int(duration_sora2) if model == "sora-2" else int(duration_sora2pro)
-        
+
+        # 参数优先级：custom_model > model
+        actual_model = custom_model.strip() if custom_model.strip() else model
+
+        # 使用中心化函数获取时长
+        duration = get_duration_for_sora2_model(actual_model, duration_sora2, duration_sora2pro)
+
+        # 日志输出
+        if custom_model.strip():
+            print(f"[ComfyUI_KuAi_Power] 使用自定义模型: {actual_model}")
+
         payload = {
-            "model": model,
+            "model": actual_model,
             "orientation": orientation,
             "prompt": prompt,
             "size": size,
@@ -285,8 +339,12 @@ class SoraText2Video:
 
         try:
             resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
-            raise_for_bad_status(resp, "Sora text2video failed")
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"创建视频失败: {detail}")
             data = resp.json()
+        except RuntimeError:
+            raise
         except Exception as e:
             raise RuntimeError(f"创建视频失败: {str(e)}")
 
@@ -354,8 +412,12 @@ class SoraCreateCharacter:
 
         try:
             resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
-            raise_for_bad_status(resp, "Sora create character failed")
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"创建角色失败: {detail}")
             data = resp.json()
+        except RuntimeError:
+            raise
         except Exception as e:
             raise RuntimeError(f"创建角色失败: {str(e)}")
 
@@ -419,8 +481,12 @@ class SoraRemixVideo:
 
         try:
             resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
-            raise_for_bad_status(resp, "Sora remix video failed")
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"视频编辑失败: {detail}")
             data = resp.json()
+        except RuntimeError:
+            raise
         except Exception as e:
             raise RuntimeError(f"视频编辑失败: {str(e)}")
 

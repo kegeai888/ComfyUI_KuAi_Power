@@ -1,9 +1,17 @@
 """Grok 视频生成节点"""
 
+import json
 import os
 import time
 import requests
-from ..Sora2.kuai_utils import env_or, http_headers_json, http_headers_auth_only, raise_for_bad_status, ensure_list_from_urls
+from ..Sora2.kuai_utils import (
+    env_or,
+    http_headers_json,
+    http_headers_auth_only,
+    ensure_list_from_urls,
+    extract_error_message_from_response,
+    extract_task_failure_detail,
+)
 
 
 class GrokCreateVideo:
@@ -97,7 +105,9 @@ class GrokCreateVideo:
                 headers=headers,
                 timeout=30
             )
-            raise_for_bad_status(resp, "Grok 视频创建失败")
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"Grok 视频创建失败: {detail}")
 
             result = resp.json()
             task_id = result.get("id", "")
@@ -108,6 +118,8 @@ class GrokCreateVideo:
 
             return (task_id, status, enhanced_prompt)
 
+        except RuntimeError:
+            raise
         except Exception as e:
             raise RuntimeError(f"Grok 视频创建失败: {str(e)}")
 
@@ -170,7 +182,9 @@ class GrokQueryVideo:
                 headers=headers,
                 timeout=30
             )
-            raise_for_bad_status(resp, "Grok 视频查询失败")
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"Grok 视频查询失败: {detail}")
 
             result = resp.json()
             status = result.get("status", "unknown")
@@ -178,12 +192,24 @@ class GrokQueryVideo:
             enhanced_prompt = result.get("enhanced_prompt", "")
             status_update_time = int(result.get("status_update_time", 0))
 
+            if status == "failed":
+                fail_detail = extract_task_failure_detail(result)
+                if not fail_detail:
+                    fail_detail = json.dumps(result, ensure_ascii=False)
+                raise RuntimeError(f"Grok 视频任务失败: {fail_detail}")
+
+            if status == "completed" and not str(video_url).strip():
+                missing_detail = extract_task_failure_detail(result) or "任务已完成但未返回视频URL"
+                raise RuntimeError(f"Grok 视频查询失败: {missing_detail}")
+
             print(f"[ComfyUI_KuAi_Power] Grok 任务状态: {status}")
             if video_url:
                 print(f"[ComfyUI_KuAi_Power] Grok 视频URL: {video_url}")
 
             return (task_id, status, video_url, enhanced_prompt, status_update_time)
 
+        except RuntimeError:
+            raise
         except Exception as e:
             raise RuntimeError(f"Grok 视频查询失败: {str(e)}")
 
@@ -293,11 +319,11 @@ class GrokCreateAndWait:
                 if status == "completed":
                     print(f"[ComfyUI_KuAi_Power] Grok 视频生成完成！")
                     return (task_id, status, video_url, enhanced_prompt)
-                elif status == "failed":
-                    raise RuntimeError(f"Grok 视频生成失败，任务ID: {task_id}")
 
                 print(f"[ComfyUI_KuAi_Power] Grok 任务进行中... 已等待 {elapsed}/{max_wait_time} 秒")
 
+            except RuntimeError:
+                raise
             except Exception as e:
                 print(f"[ComfyUI_KuAi_Power] Grok 查询出错: {str(e)}")
                 # 继续等待，不立即失败
@@ -405,7 +431,9 @@ class GrokImage2Video:
                 headers=headers,
                 timeout=30
             )
-            raise_for_bad_status(resp, "Grok 图生视频创建失败")
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"Grok 图生视频创建失败: {detail}")
 
             result = resp.json()
             task_id = result.get("id", "")
@@ -420,6 +448,8 @@ class GrokImage2Video:
 
             return (task_id, status, enhanced_prompt, status_update_time)
 
+        except RuntimeError:
+            raise
         except Exception as e:
             raise RuntimeError(f"Grok 图生视频创建失败: {str(e)}")
 
@@ -529,11 +559,11 @@ class GrokImage2VideoAndWait:
                 if status == "completed":
                     print(f"[ComfyUI_KuAi_Power] Grok 图生视频完成！")
                     return (task_id, status, video_url, enhanced_prompt)
-                elif status == "failed":
-                    raise RuntimeError(f"Grok 图生视频失败，任务ID: {task_id}")
 
                 print(f"[ComfyUI_KuAi_Power] Grok 任务进行中... 已等待 {elapsed}/{max_wait_time} 秒")
 
+            except RuntimeError:
+                raise
             except Exception as e:
                 print(f"[ComfyUI_KuAi_Power] Grok 查询出错: {str(e)}")
                 # 继续等待，不立即失败
@@ -627,7 +657,9 @@ class GrokText2Video:
                 headers=headers,
                 timeout=30
             )
-            raise_for_bad_status(resp, "Grok 文生视频创建失败")
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"Grok 文生视频创建失败: {detail}")
 
             result = resp.json()
             task_id = result.get("id", "")
@@ -638,6 +670,8 @@ class GrokText2Video:
 
             return (task_id, status, enhanced_prompt)
 
+        except RuntimeError:
+            raise
         except Exception as e:
             raise RuntimeError(f"Grok 文生视频创建失败: {str(e)}")
 
@@ -741,11 +775,11 @@ class GrokText2VideoAndWait:
                 if status == "completed":
                     print(f"[ComfyUI_KuAi_Power] Grok 文生视频完成！")
                     return (task_id, status, video_url, enhanced_prompt)
-                elif status == "failed":
-                    raise RuntimeError(f"Grok 文生视频失败，任务ID: {task_id}")
 
                 print(f"[ComfyUI_KuAi_Power] Grok 任务进行中... 已等待 {elapsed}/{max_wait_time} 秒")
 
+            except RuntimeError:
+                raise
             except Exception as e:
                 print(f"[ComfyUI_KuAi_Power] Grok 查询出错: {str(e)}")
                 # 继续等待，不立即失败

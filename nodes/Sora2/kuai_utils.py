@@ -107,3 +107,139 @@ def json_get(d: dict, path: str, default=None):
             return default
         cur = cur[key]
     return cur
+
+
+def _first_non_empty(*values):
+    for v in values:
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    return ""
+
+
+def extract_error_message_from_json(data):
+    if not isinstance(data, dict):
+        return ""
+
+    error = data.get("error")
+    if isinstance(error, dict):
+        msg = _first_non_empty(
+            error.get("message"),
+            error.get("msg"),
+            error.get("detail"),
+            error.get("reason"),
+            error.get("error"),
+        )
+        if msg:
+            return msg
+
+    msg = _first_non_empty(
+        data.get("message"),
+        data.get("msg"),
+        data.get("detail"),
+        data.get("reason"),
+        data.get("error_message"),
+        data.get("failure_reason"),
+        data.get("fail_reason"),
+    )
+    if msg:
+        return msg
+
+    nested_msg = _first_non_empty(
+        json_get(data, "error.message", ""),
+        json_get(data, "error.detail", ""),
+        json_get(data, "result.error_message", ""),
+        json_get(data, "result.error.message", ""),
+        json_get(data, "moderation.message", ""),
+        json_get(data, "safety.message", ""),
+    )
+    return nested_msg
+
+
+def extract_error_message_from_response(resp):
+    try:
+        data = resp.json()
+    except Exception:
+        data = None
+
+    msg = extract_error_message_from_json(data) if data is not None else ""
+    if msg:
+        return msg
+
+    try:
+        text = (resp.text or "").strip()
+    except Exception:
+        text = ""
+
+    return text or f"HTTP {getattr(resp, 'status_code', 'unknown')}"
+
+
+def extract_task_failure_detail(data):
+    if not isinstance(data, dict):
+        return ""
+
+    return _first_non_empty(
+        data.get("error_message"),
+        data.get("failure_reason"),
+        data.get("fail_reason"),
+        data.get("reason"),
+        data.get("message"),
+        json_get(data, "error.message", ""),
+        json_get(data, "error.detail", ""),
+        json_get(data, "result.error_message", ""),
+        json_get(data, "result.error.message", ""),
+    ) or extract_error_message_from_json(data)
+
+
+# ============================================================
+# Sora2 模型配置中心
+# ============================================================
+
+# 模型定义：用于下拉列表
+SORA2_MODELS = [
+    "sora-2-all",
+    "sora-2-pro-all",
+    "sora-2-vip-all",  # 新增
+]
+
+# 模型分类：用于时长参数映射
+SORA2_MODEL_CATEGORIES = {
+    # 标准模型：使用 duration_sora2 (10/15秒)
+    "standard": ["sora-2-all", "sora-2-vip-all"],
+
+    # Pro 模型：使用 duration_sora2pro (15/25秒)
+    "pro": ["sora-2-pro-all"],
+}
+
+def get_duration_for_sora2_model(model: str, duration_sora2: str, duration_sora2pro: str) -> int:
+    """
+    根据模型名称返回对应的时长参数
+
+    Args:
+        model: 模型名称（可能是下拉选择或自定义输入）
+        duration_sora2: sora-2 标准模型的时长
+        duration_sora2pro: sora-2-pro 模型的时长
+
+    Returns:
+        int: 时长（秒）
+
+    逻辑：
+        1. 精确匹配：检查模型是否在 standard/pro 列表中
+        2. 前缀匹配：检查模型名称前缀（支持自定义模型）
+        3. 默认回退：未知模型使用 duration_sora2
+    """
+    model = model.strip().lower()
+
+    # 精确匹配：标准模型
+    if model in [m.lower() for m in SORA2_MODEL_CATEGORIES["standard"]]:
+        return int(duration_sora2)
+
+    # 精确匹配：Pro 模型
+    if model in [m.lower() for m in SORA2_MODEL_CATEGORIES["pro"]]:
+        return int(duration_sora2pro)
+
+    # 前缀匹配：支持自定义模型（如 sora-2-pro-custom）
+    if model.startswith("sora-2-pro"):
+        return int(duration_sora2pro)
+
+    # 默认回退：未知模型使用标准时长
+    return int(duration_sora2)
