@@ -1,5 +1,6 @@
 import os
 import io
+import base64
 import typing
 import numpy as np
 import requests
@@ -59,6 +60,51 @@ def save_image_to_buffer(pil: Image.Image, fmt: str, quality: int) -> io.BytesIO
         raise ValueError(f"不支持的图片格式: {fmt}")
     buf.seek(0)
     return buf
+
+def pil_to_base64(pil: Image.Image, fmt: str = "PNG", quality: int = 95) -> str:
+    """将 PIL 图像转换为 base64 字符串"""
+    buf = save_image_to_buffer(pil, fmt, quality)
+    return base64.b64encode(buf.read()).decode('utf-8')
+
+def file_to_base64(file_path: str) -> str:
+    """将文件转换为 base64 字符串（支持图片、视频、音频等）"""
+    with open(file_path, 'rb') as f:
+        return base64.b64encode(f.read()).decode('utf-8')
+
+def extract_gemini_text_from_response(data: dict) -> str:
+    """从 Gemini API 响应中提取文本内容
+
+    Args:
+        data: Gemini API 返回的 JSON 数据
+
+    Returns:
+        提取的文本内容，如果没有文本则返回 finishReason
+    """
+    try:
+        candidates = data.get("candidates", []) if isinstance(data, dict) else []
+        if not candidates:
+            return ""
+
+        candidate = candidates[0] or {}
+        content = candidate.get("content", {}) if isinstance(candidate, dict) else {}
+        parts = content.get("parts", []) if isinstance(content, dict) else []
+
+        texts = []
+        for part in parts:
+            if isinstance(part, dict) and "text" in part:
+                text = str(part.get("text", "")).strip()
+                if text:
+                    texts.append(text)
+
+        if texts:
+            return "\n".join(texts)
+
+        # 回退：返回 finishReason（用于调试）
+        finish_reason = str(candidate.get("finishReason", "")).strip()
+        return finish_reason
+    except Exception:
+        return ""
+
 
 def ensure_list_from_urls(urls_str: str) -> typing.List[str]:
     """将分隔的 URL 字符串拆分为列表"""
