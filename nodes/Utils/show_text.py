@@ -29,7 +29,7 @@ class ShowText:
 
     def show(self, text):
         """显示文本"""
-        return {"ui": {"text": [text]}, "result": (text,)}
+        return {"ui": {"string": [text]}, "result": (text,)}
 
 
 NODE_CLASS_MAPPINGS = {
