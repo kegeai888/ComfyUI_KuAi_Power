@@ -1,7 +1,9 @@
 """Gemini 图片和视频理解节点"""
 
 import os
+import io
 import json
+import tempfile
 import requests
 
 from ..Sora2.kuai_utils import (
@@ -12,6 +14,37 @@ from ..Sora2.kuai_utils import (
     extract_gemini_text_from_response,
     extract_error_message_from_response,
 )
+
+
+def _save_video_input_to_temp_file(video_input):
+    """将 ComfyUI VIDEO 输入保存为临时文件并返回路径"""
+    temp_path = None
+
+    # 优先使用 get_stream_source（VideoFromFile）
+    if hasattr(video_input, "get_stream_source") and callable(getattr(video_input, "get_stream_source")):
+        src = video_input.get_stream_source()
+        if isinstance(src, str) and os.path.exists(src):
+            return src, False
+        if isinstance(src, io.BytesIO):
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+                src.seek(0)
+                tmp.write(src.read())
+                temp_path = tmp.name
+            return temp_path, True
+
+    # 兜底：使用 save_to 导出到临时文件（VideoInput 通用能力）
+    if hasattr(video_input, "save_to") and callable(getattr(video_input, "save_to")):
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+            temp_path = tmp.name
+        try:
+            video_input.save_to(temp_path)
+            return temp_path, True
+        except Exception:
+            if temp_path and os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise
+
+    raise RuntimeError("无法从 VIDEO 输入解析视频文件，请检查上游节点输出")
 
 
 class GeminiImageUnderstanding:
@@ -57,7 +90,7 @@ class GeminiImageUnderstanding:
                 "timeout": ("INT", {
                     "default": 120,
                     "min": 30,
-                    "max": 600,
+                    "max": 6000,
                     "tooltip": "请求超时时间（秒）"
                 }),
             }
@@ -165,9 +198,8 @@ class GeminiVideoUnderstanding:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "video_path": ("STRING", {
-                    "default": "",
-                    "tooltip": "视频文件路径"
+                "video": ("VIDEO", {
+                    "tooltip": "输入视频（可连接 ComfyUI 的加载视频节点）"
                 }),
                 "prompt": ("STRING", {
                     "default": "请用3句话总结这个视频的内容",
@@ -191,6 +223,10 @@ class GeminiVideoUnderstanding:
                 }),
             },
             "optional": {
+                "video_path": ("STRING", {
+                    "default": "",
+                    "tooltip": "视频文件路径（兼容旧工作流，优先使用 video 输入）"
+                }),
                 "custom_model": ("STRING", {
                     "default": "",
                     "tooltip": "自定义模型（留空使用上方下拉框模型）"
@@ -202,7 +238,7 @@ class GeminiVideoUnderstanding:
                 "timeout": ("INT", {
                     "default": 300,
                     "min": 60,
-                    "max": 900,
+                    "max": 6000,
                     "tooltip": "请求超时时间（秒）"
                 }),
                 "max_wait_time": ("INT", {
@@ -217,6 +253,7 @@ class GeminiVideoUnderstanding:
     @classmethod
     def INPUT_LABELS(cls):
         return {
+            "video": "视频",
             "video_path": "视频路径",
             "prompt": "提示词",
             "model": "模型",
@@ -232,8 +269,10 @@ class GeminiVideoUnderstanding:
     FUNCTION = "understand_video"
     CATEGORY = "KuAi/Gemini"
 
-    def understand_video(self, video_path, prompt, model, api_key="", custom_model="", api_base="https://ai.kegeai.top", timeout=300, max_wait_time=1200):
+    def understand_video(self, video, prompt, model, api_key="", video_path="", custom_model="", api_base="https://ai.kegeai.top", timeout=300, max_wait_time=1200):
         """理解视频内容"""
+        temp_video_path = None
+        cleanup_temp = False
         try:
             # 获取 API Key
             api_key = env_or(api_key, "KUAI_API_KEY")
@@ -243,13 +282,21 @@ class GeminiVideoUnderstanding:
             # 确定使用的模型（custom_model 优先）
             effective_model = (custom_model or "").strip() or model
 
-            # 验证视频文件
-            if not os.path.exists(video_path):
-                raise RuntimeError(f"视频文件不存在: {video_path}")
+            # 优先使用 VIDEO 输入，兼容旧版 video_path
+            resolved_video_path = ""
+            if video is not None:
+                resolved_video_path, cleanup_temp = _save_video_input_to_temp_file(video)
+                temp_video_path = resolved_video_path if cleanup_temp else None
+            elif (video_path or "").strip():
+                resolved_video_path = video_path.strip()
+                if not os.path.exists(resolved_video_path):
+                    raise RuntimeError(f"视频文件不存在: {resolved_video_path}")
+            else:
+                raise RuntimeError("请连接视频输入或提供视频路径")
 
             # 转换视频为 base64
-            print(f"[ComfyUI_KuAi_Power] 正在读取视频文件: {video_path}")
-            video_base64 = file_to_base64(video_path)
+            print(f"[ComfyUI_KuAi_Power] 正在读取视频文件: {resolved_video_path}")
+            video_base64 = file_to_base64(resolved_video_path)
 
             # 构建请求
             api_base = api_base.rstrip("/")
@@ -309,4 +356,10 @@ class GeminiVideoUnderstanding:
             raise
         except Exception as e:
             raise RuntimeError(f"Gemini 视频理解失败: {str(e)}")
+        finally:
+            if cleanup_temp and temp_video_path and os.path.exists(temp_video_path):
+                try:
+                    os.remove(temp_video_path)
+                except Exception:
+                    pass
 

@@ -1,20 +1,51 @@
 {
-  "last_node_id": 2,
-  "last_link_id": 1,
+  "last_node_id": 3,
+  "last_link_id": 2,
   "nodes": [
     {
       "id": 1,
-      "type": "GeminiVideoUnderstanding",
-      "pos": [100, 100],
-      "size": [400, 460],
+      "type": "LoadVideo",
+      "pos": [80, 120],
+      "size": [320, 120],
       "flags": {},
       "order": 0,
       "mode": 0,
       "outputs": [
         {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [1],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadVideo"
+      },
+      "widgets_values": [
+        "example.mp4"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "GeminiVideoUnderstanding",
+      "pos": [470, 100],
+      "size": [460, 520],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
           "name": "理解结果",
           "type": "STRING",
-          "links": [1],
+          "links": [2],
           "shape": 3,
           "slot_index": 0
         }
@@ -23,9 +54,9 @@
         "Node name for S&R": "GeminiVideoUnderstanding"
       },
       "widgets_values": [
-        "/path/to/your/video.mp4",
         "请用3句话总结这个视频的内容，包括主要场景、人物动作和关键事件。",
         "gemini-3.1-pro-preview",
+        "",
         "",
         "",
         "https://ai.kegeai.top",
@@ -34,18 +65,18 @@
       ]
     },
     {
-      "id": 2,
+      "id": 3,
       "type": "ShowText",
-      "pos": [580, 100],
-      "size": [400, 300],
+      "pos": [990, 110],
+      "size": [420, 300],
       "flags": {},
-      "order": 1,
+      "order": 2,
       "mode": 0,
       "inputs": [
         {
           "name": "text",
           "type": "STRING",
-          "link": 1
+          "link": 2
         }
       ],
       "properties": {
@@ -57,7 +88,8 @@
     }
   ],
   "links": [
-    [1, 1, 0, 2, 0, "STRING"]
+    [1, 1, 0, 2, 0, "VIDEO"],
+    [2, 2, 0, 3, 0, "STRING"]
   ],
   "groups": [],
   "config": {},

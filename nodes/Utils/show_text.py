@@ -29,7 +29,9 @@ class ShowText:
 
     def show(self, text):
         """显示文本"""
-        return {"ui": {"string": [text]}, "result": (text,)}
+        # 兼容不同前端/主题对 UI 字段名的处理差异
+        # 同时返回 string 与 text，确保在 ComfyUI 中可见
+        return {"ui": {"string": [text], "text": [text]}, "result": (text,)}
 
 
 NODE_CLASS_MAPPINGS = {
