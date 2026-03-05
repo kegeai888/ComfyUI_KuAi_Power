@@ -31,7 +31,7 @@ class GrokCreateVideo:
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
-                "aspect_ratio": (["1:1", "2:3", "3:2"], {
+                "aspect_ratio": (["2:3", "3:2", "1:1"], {
                     "default": "3:2",
                     "tooltip": "视频宽高比"
                 }),
@@ -251,7 +251,7 @@ class GrokCreateAndWait:
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
-                "aspect_ratio": (["1:1", "2:3", "3:2"], {
+                "aspect_ratio": (["2:3", "3:2", "1:1"], {
                     "default": "3:2",
                     "tooltip": "视频宽高比"
                 }),
@@ -389,7 +389,7 @@ class GrokImage2Video:
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
-                "aspect_ratio": (["1:1", "2:3", "3:2"], {
+                "aspect_ratio": (["2:3", "3:2", "1:1"], {
                     "default": "3:2",
                     "tooltip": "视频宽高比"
                 }),
@@ -528,7 +528,7 @@ class GrokImage2VideoAndWait:
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
-                "aspect_ratio": (["1:1", "2:3", "3:2"], {
+                "aspect_ratio": (["2:3", "3:2", "1:1"], {
                     "default": "3:2",
                     "tooltip": "视频宽高比"
                 }),
@@ -656,7 +656,7 @@ class GrokText2Video:
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
-                "aspect_ratio": (["1:1", "2:3", "3:2"], {
+                "aspect_ratio": (["2:3", "3:2", "1:1"], {
                     "default": "3:2",
                     "tooltip": "视频宽高比"
                 }),
@@ -777,7 +777,7 @@ class GrokText2VideoAndWait:
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
-                "aspect_ratio": (["1:1", "2:3", "3:2"], {
+                "aspect_ratio": (["2:3", "3:2", "1:1"], {
                     "default": "3:2",
                     "tooltip": "视频宽高比"
                 }),
