@@ -7,6 +7,7 @@ from .kling import (
     KlingText2VideoAndWait,
     KlingImage2VideoAndWait,
 )
+from .batch_processor import KlingBatchProcessor
 
 NODE_CLASS_MAPPINGS = {
     "KlingText2Video": KlingText2Video,
@@ -14,6 +15,7 @@ NODE_CLASS_MAPPINGS = {
     "KlingQueryTask": KlingQueryTask,
     "KlingText2VideoAndWait": KlingText2VideoAndWait,
     "KlingImage2VideoAndWait": KlingImage2VideoAndWait,
+    "KlingBatchProcessor": KlingBatchProcessor,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -22,4 +24,5 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "KlingQueryTask": "🔍 可灵查询任务",
     "KlingText2VideoAndWait": "⚡ 可灵文生视频（一键）",
     "KlingImage2VideoAndWait": "⚡ 可灵图生视频（一键）",
+    "KlingBatchProcessor": "📦 可灵批量处理",
 }
