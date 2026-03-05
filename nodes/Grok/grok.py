@@ -99,6 +99,12 @@ class GrokCreateVideo:
         else:
             duration = get_duration_for_grok_model(model)
 
+        # 根据 duration 调整 size（只有 15 秒模型支持 1080P）
+        effective_size = size
+        if duration != 15 and size == "1080P":
+            effective_size = "720P"
+            print(f"[ComfyUI_KuAi_Power] 警告：{duration}秒模型不支持 1080P，已自动降级到 720P")
+
         # 解析图片URL列表
         images = ensure_list_from_urls(image_urls) if image_urls else []
 
@@ -106,7 +112,7 @@ class GrokCreateVideo:
             "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
-            "size": size,
+            "size": effective_size,
             "duration": duration,
             "images": images
         }
@@ -453,11 +459,17 @@ class GrokImage2Video:
         else:
             duration = get_duration_for_grok_model(model)
 
+        # 根据 duration 调整 size（只有 15 秒模型支持 1080P）
+        effective_size = size
+        if duration != 15 and size == "1080P":
+            effective_size = "720P"
+            print(f"[ComfyUI_KuAi_Power] 警告：{duration}秒模型不支持 1080P，已自动降级到 720P")
+
         payload = {
             "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
-            "size": size,
+            "size": effective_size,
             "duration": duration,
             "images": images_list
         }
@@ -706,11 +718,17 @@ class GrokText2Video:
         else:
             duration = get_duration_for_grok_model(model)
 
+        # 根据 duration 调整 size（只有 15 秒模型支持 1080P）
+        effective_size = size
+        if duration != 15 and size == "1080P":
+            effective_size = "720P"
+            print(f"[ComfyUI_KuAi_Power] 警告：{duration}秒模型不支持 1080P，已自动降级到 720P")
+
         payload = {
             "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
-            "size": size,
+            "size": effective_size,
             "duration": duration,
             "images": []  # 文生视频不需要图片
         }
