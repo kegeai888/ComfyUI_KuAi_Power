@@ -68,7 +68,7 @@
     },
     {
       "id": 3,
-      "type": "ShowText|pysssss",
+      "type": "ShowText",
       "pos": [950, 100],
       "size": [400, 200],
       "flags": {},
@@ -89,7 +89,7 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "ShowText|pysssss"
+        "Node name for S&R": "ShowText"
       },
       "widgets_values": [
         "",

@@ -57,7 +57,7 @@
     },
     {
       "id": 2,
-      "type": "ShowText|pysssss",
+      "type": "ShowText",
       "pos": [550, 100],
       "size": [300, 100],
       "flags": {},
@@ -78,7 +78,7 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "ShowText|pysssss"
+        "Node name for S&R": "ShowText"
       },
       "widgets_values": [
         "",
@@ -87,7 +87,7 @@
     },
     {
       "id": 3,
-      "type": "ShowText|pysssss",
+      "type": "ShowText",
       "pos": [550, 250],
       "size": [300, 100],
       "flags": {},
@@ -108,7 +108,7 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "ShowText|pysssss"
+        "Node name for S&R": "ShowText"
       },
       "widgets_values": [
         "",
