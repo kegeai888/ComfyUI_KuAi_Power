@@ -1,0 +1,4 @@
+task_type,prompt,model_name,mode,duration,aspect_ratio,output_prefix
+text2video,海边日落，海浪拍打岸边,kling-v1,std,5,16:9,sunset
+text2video,城市夜景，车流穿梭,kling-v1,std,5,16:9,city
+text2video,森林中的小溪，阳光透过树叶,kling-v1,std,5,16:9,forest

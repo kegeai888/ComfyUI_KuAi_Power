@@ -1,0 +1,4 @@
+task_type,prompt,negative_prompt,model_name,mode,duration,aspect_ratio,cfg_scale,watermark,output_prefix
+text2video,美丽的花园，蝴蝶飞舞,模糊、低质量,kling-v2-master,pro,10,16:9,0.7,true,garden
+text2video,雪山风景，云雾缭绕,噪点、失真,kling-v2-master,pro,10,9:16,0.6,false,mountain
+text2video,现代都市建筑，玻璃幕墙反光,过曝、色彩失真,kling-v1-6,std,5,1:1,0.5,false,building

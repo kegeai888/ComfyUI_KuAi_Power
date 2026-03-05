@@ -1,0 +1,4 @@
+task_type,image,prompt,model_name,mode,duration,output_prefix
+image2video,https://example.com/image1.jpg,让图片动起来,kling-v1,std,5,img2vid_1
+image2video,https://example.com/image2.jpg,添加动态效果,kling-v1,std,5,img2vid_2
+image2video,https://example.com/image3.jpg,自然流畅的运动,kling-v1,std,5,img2vid_3
