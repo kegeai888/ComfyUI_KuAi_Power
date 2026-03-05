@@ -28,8 +28,8 @@ def test_display_names_have_emoji():
     from nodes.Kling import NODE_DISPLAY_NAME_MAPPINGS
 
     for node_name, display_name in NODE_DISPLAY_NAME_MAPPINGS.items():
-        # 检查是否包含 emoji（🎞️ 或 🔍 或 ⚡）
-        has_emoji = any(emoji in display_name for emoji in ["🎞️", "🔍", "⚡"])
+        # 检查是否包含 emoji（🎞️ 或 🔍 或 ⚡ 或 📦）
+        has_emoji = any(emoji in display_name for emoji in ["🎞️", "🔍", "⚡", "📦"])
         assert has_emoji, f"{node_name} 的显示名称缺少 emoji"
 
     print("✅ 所有显示名称包含 emoji")
