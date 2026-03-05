@@ -306,3 +306,135 @@ class KlingImage2Video:
             raise
         except Exception as e:
             raise RuntimeError(f"创建图生视频任务失败: {str(e)}")
+
+
+class KlingQueryTask:
+    """可灵查询任务节点"""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "task_id": ("STRING", {
+                    "default": "",
+                    "tooltip": "任务 ID"
+                }),
+            },
+            "optional": {
+                "wait": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "是否等待任务完成"
+                }),
+                "poll_interval_sec": ("INT", {
+                    "default": 15,
+                    "min": 5,
+                    "max": 90,
+                    "tooltip": "轮询间隔(秒)"
+                }),
+                "timeout_sec": ("INT", {
+                    "default": 1200,
+                    "min": 600,
+                    "max": 9600,
+                    "tooltip": "总超时时间(秒)"
+                }),
+                "api_key": ("STRING", {
+                    "default": "",
+                    "tooltip": "API密钥"
+                }),
+                "api_base": ("STRING", {
+                    "default": "https://api.kuai.host",
+                    "tooltip": "API端点地址"
+                }),
+            }
+        }
+
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING")
+    RETURN_NAMES = ("状态", "视频URL", "时长", "原始响应")
+    FUNCTION = "query"
+    CATEGORY = "KuAi/Kling"
+
+    @classmethod
+    def INPUT_LABELS(cls):
+        return {
+            "task_id": "任务ID",
+            "wait": "等待完成",
+            "poll_interval_sec": "轮询间隔",
+            "timeout_sec": "总超时",
+            "api_key": "API密钥",
+            "api_base": "API地址",
+        }
+
+    def query(self, task_id, wait=True, poll_interval_sec=15, timeout_sec=1200,
+              api_key="", api_base="https://api.kuai.host"):
+        """查询任务状态"""
+
+        api_key = env_or(api_key, "KUAI_API_KEY")
+        if not api_key:
+            raise RuntimeError("API Key 未配置")
+
+        if not task_id:
+            raise RuntimeError("请提供任务 ID")
+
+        endpoint = api_base.rstrip("/") + f"/kling/v1/videos/text2video/{task_id}"
+        headers = http_headers_json(api_key)
+
+        def query_once():
+            """查询一次"""
+            try:
+                resp = requests.get(endpoint, headers=headers, timeout=60)
+                raise_for_bad_status(resp, "查询任务失败")
+
+                data = resp.json()
+
+                # 解析响应
+                if data.get("code") != 0:
+                    raise RuntimeError(f"查询失败: {data.get('message', '未知错误')}")
+
+                task_data = data.get("data", {})
+                status = task_data.get("task_status", "")
+                task_info = task_data.get("task_info", {})
+                video_url = task_info.get("video_url", "")
+                duration = task_info.get("duration", "")
+
+                # 检查任务失败
+                if status == "failed":
+                    error_msg = task_info.get("error", "任务失败")
+                    raise RuntimeError(f"任务执行失败: {error_msg}")
+
+                # 检查视频 URL
+                if status == "succeed" and not video_url:
+                    raise RuntimeError("任务完成但未返回视频 URL")
+
+                return (status, video_url, duration, json.dumps(data, ensure_ascii=False))
+
+            except RuntimeError:
+                raise
+            except Exception as e:
+                raise RuntimeError(f"查询任务失败: {str(e)}")
+
+        # 如果不等待，直接返回
+        if not wait:
+            return query_once()
+
+        # 轮询等待
+        print(f"[KlingQueryTask] 开始轮询任务 {task_id}，超时 {timeout_sec} 秒，间隔 {poll_interval_sec} 秒")
+        deadline = time.time() + int(timeout_sec)
+        last_raw = ""
+        poll_count = 0
+
+        while time.time() < deadline:
+            poll_count += 1
+            status, video_url, duration, raw = query_once()
+            last_raw = raw
+
+            print(f"[KlingQueryTask] 第 {poll_count} 次查询: 状态={status}")
+
+            if status in ("succeed", "failed"):
+                print(f"[KlingQueryTask] 任务完成: {status}")
+                return (status, video_url, duration, raw)
+
+            time.sleep(int(poll_interval_sec))
+
+        # 超时
+        print(f"[KlingQueryTask] 轮询超时")
+        return ("timeout", "", "", last_raw or json.dumps({"error": "timeout"}, ensure_ascii=False))
