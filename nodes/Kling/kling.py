@@ -438,3 +438,183 @@ class KlingQueryTask:
         # 超时
         print(f"[KlingQueryTask] 轮询超时")
         return ("timeout", "", "", last_raw or json.dumps({"error": "timeout"}, ensure_ascii=False))
+
+
+class KlingText2VideoAndWait:
+    """可灵文生视频一键生成节点"""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "prompt": ("STRING", {
+                    "default": "",
+                    "multiline": True,
+                    "tooltip": "视频提示词"
+                }),
+                "model_name": (KLING_MODELS, {
+                    "default": "kling-v1",
+                    "tooltip": "模型选择"
+                }),
+                "mode": (["std", "pro"], {
+                    "default": "std",
+                    "tooltip": "生成模式"
+                }),
+                "duration": (["5", "10"], {
+                    "default": "5",
+                    "tooltip": "视频时长（秒）"
+                }),
+                "aspect_ratio": (KLING_ASPECT_RATIOS, {
+                    "default": "16:9",
+                    "tooltip": "视频宽高比"
+                }),
+            },
+            "optional": {
+                "negative_prompt": ("STRING", {"default": "", "multiline": True}),
+                "cfg_scale": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1}),
+                "multi_shot": ("BOOLEAN", {"default": False}),
+                "watermark": ("BOOLEAN", {"default": False}),
+                "api_key": ("STRING", {"default": ""}),
+                "api_base": ("STRING", {"default": "https://api.kuai.host"}),
+                "create_timeout": ("INT", {"default": 120, "min": 5, "max": 600}),
+                "poll_interval_sec": ("INT", {"default": 15, "min": 5, "max": 90}),
+                "wait_timeout_sec": ("INT", {"default": 1200, "min": 600, "max": 9600}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING")
+    RETURN_NAMES = ("状态", "视频URL", "时长", "任务ID")
+    FUNCTION = "run"
+    CATEGORY = "KuAi/Kling"
+
+    @classmethod
+    def INPUT_LABELS(cls):
+        return {
+            "prompt": "提示词",
+            "model_name": "模型名称",
+            "mode": "模式",
+            "duration": "时长",
+            "aspect_ratio": "宽高比",
+            "negative_prompt": "负面提示词",
+            "cfg_scale": "CFG强度",
+            "multi_shot": "多镜头",
+            "watermark": "水印",
+            "api_key": "API密钥",
+            "api_base": "API地址",
+            "create_timeout": "创建超时",
+            "poll_interval_sec": "轮询间隔",
+            "wait_timeout_sec": "等待超时",
+        }
+
+    def run(self, prompt, model_name="kling-v1", mode="std", duration="5", aspect_ratio="16:9",
+            negative_prompt="", cfg_scale=0.5, multi_shot=False, watermark=False,
+            api_key="", api_base="https://api.kuai.host",
+            create_timeout=120, poll_interval_sec=15, wait_timeout_sec=1200):
+        """一键创建并等待完成"""
+
+        # 创建任务
+        creator = KlingText2Video()
+        task_id, status, _ = creator.create(
+            prompt=prompt, model_name=model_name, mode=mode, duration=duration, aspect_ratio=aspect_ratio,
+            negative_prompt=negative_prompt, cfg_scale=cfg_scale, multi_shot=multi_shot, watermark=watermark,
+            api_key=api_key, api_base=api_base, timeout=create_timeout
+        )
+
+        # 查询任务
+        querier = KlingQueryTask()
+        status, video_url, video_duration, _raw = querier.query(
+            task_id=task_id, wait=True, poll_interval_sec=poll_interval_sec, timeout_sec=wait_timeout_sec,
+            api_key=api_key, api_base=api_base
+        )
+
+        return (status, video_url, video_duration, task_id)
+
+
+class KlingImage2VideoAndWait:
+    """可灵图生视频一键生成节点"""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("STRING", {
+                    "default": "",
+                    "multiline": False,
+                    "tooltip": "图片 URL 或 Base64"
+                }),
+                "model_name": (KLING_MODELS, {
+                    "default": "kling-v1",
+                    "tooltip": "模型选择"
+                }),
+                "mode": (["std", "pro"], {
+                    "default": "std",
+                    "tooltip": "生成模式"
+                }),
+                "duration": (["5", "10"], {
+                    "default": "5",
+                    "tooltip": "视频时长（秒）"
+                }),
+            },
+            "optional": {
+                "prompt": ("STRING", {"default": "", "multiline": True}),
+                "image_tail": ("STRING", {"default": ""}),
+                "negative_prompt": ("STRING", {"default": "", "multiline": True}),
+                "cfg_scale": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1}),
+                "multi_shot": ("BOOLEAN", {"default": False}),
+                "watermark": ("BOOLEAN", {"default": False}),
+                "api_key": ("STRING", {"default": ""}),
+                "api_base": ("STRING", {"default": "https://api.kuai.host"}),
+                "create_timeout": ("INT", {"default": 120, "min": 5, "max": 600}),
+                "poll_interval_sec": ("INT", {"default": 15, "min": 5, "max": 90}),
+                "wait_timeout_sec": ("INT", {"default": 1200, "min": 600, "max": 9600}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING")
+    RETURN_NAMES = ("状态", "视频URL", "时长", "任务ID")
+    FUNCTION = "run"
+    CATEGORY = "KuAi/Kling"
+
+    @classmethod
+    def INPUT_LABELS(cls):
+        return {
+            "image": "图片",
+            "model_name": "模型名称",
+            "mode": "模式",
+            "duration": "时长",
+            "prompt": "提示词",
+            "image_tail": "尾帧图片",
+            "negative_prompt": "负面提示词",
+            "cfg_scale": "CFG强度",
+            "multi_shot": "多镜头",
+            "watermark": "水印",
+            "api_key": "API密钥",
+            "api_base": "API地址",
+            "create_timeout": "创建超时",
+            "poll_interval_sec": "轮询间隔",
+            "wait_timeout_sec": "等待超时",
+        }
+
+    def run(self, image, model_name="kling-v1", mode="std", duration="5",
+            prompt="", image_tail="", negative_prompt="", cfg_scale=0.5, multi_shot=False, watermark=False,
+            api_key="", api_base="https://api.kuai.host",
+            create_timeout=120, poll_interval_sec=15, wait_timeout_sec=1200):
+        """一键创建并等待完成"""
+
+        # 创建任务
+        creator = KlingImage2Video()
+        task_id, status, _ = creator.create(
+            image=image, model_name=model_name, mode=mode, duration=duration,
+            prompt=prompt, image_tail=image_tail, negative_prompt=negative_prompt,
+            cfg_scale=cfg_scale, multi_shot=multi_shot, watermark=watermark,
+            api_key=api_key, api_base=api_base, timeout=create_timeout
+        )
+
+        # 查询任务
+        querier = KlingQueryTask()
+        status, video_url, video_duration, _raw = querier.query(
+            task_id=task_id, wait=True, poll_interval_sec=poll_interval_sec, timeout_sec=wait_timeout_sec,
+            api_key=api_key, api_base=api_base
+        )
+
+        return (status, video_url, video_duration, task_id)
