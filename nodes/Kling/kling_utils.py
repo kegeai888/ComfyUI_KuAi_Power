@@ -3,11 +3,13 @@
 # 模型列表
 KLING_MODELS = [
     "kling-v1",
+    "kling-v1-5",
     "kling-v1-6",
     "kling-v2-master",
+    "kling-v2-1",
     "kling-v2-1-master",
     "kling-v2-5-turbo",
-    "kling-v3"
+    "kling-v2-6"
 ]
 
 # 宽高比列表

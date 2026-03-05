@@ -20,7 +20,7 @@ class KlingText2Video:
                     "tooltip": "视频提示词"
                 }),
                 "model_name": (KLING_MODELS, {
-                    "default": "kling-v1",
+                    "default": "kling-v2-6",
                     "tooltip": "模型选择"
                 }),
                 "mode": (["std", "pro"], {
@@ -37,6 +37,10 @@ class KlingText2Video:
                 }),
             },
             "optional": {
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型名称（留空使用上方下拉框选择的模型）"
+                }),
                 "negative_prompt": ("STRING", {
                     "default": "",
                     "multiline": True,
@@ -62,7 +66,7 @@ class KlingText2Video:
                     "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"
                 }),
                 "api_base": ("STRING", {
-                    "default": "https://api.kuai.host",
+                    "default": "https://ai.kegeai.top",
                     "tooltip": "API端点地址"
                 }),
                 "timeout": ("INT", {
@@ -87,6 +91,7 @@ class KlingText2Video:
             "mode": "模式",
             "duration": "时长",
             "aspect_ratio": "宽高比",
+            "custom_model": "自定义模型",
             "negative_prompt": "负面提示词",
             "cfg_scale": "CFG强度",
             "multi_shot": "多镜头",
@@ -96,9 +101,9 @@ class KlingText2Video:
             "timeout": "超时",
         }
 
-    def create(self, prompt, model_name="kling-v1", mode="std", duration="5", aspect_ratio="16:9",
-               negative_prompt="", cfg_scale=0.5, multi_shot=False, watermark=False,
-               api_key="", api_base="https://api.kuai.host", timeout=120):
+    def create(self, prompt, model_name="kling-v2-6", mode="std", duration="5", aspect_ratio="16:9",
+               custom_model="", negative_prompt="", cfg_scale=0.5, multi_shot=False, watermark=False,
+               api_key="", api_base="https://ai.kegeai.top", timeout=120):
         """创建文生视频任务"""
 
         # 解析 API key
@@ -106,12 +111,15 @@ class KlingText2Video:
         if not api_key:
             raise RuntimeError("API Key 未配置，请在节点参数或环境变量中设置")
 
+        # 处理自定义模型：如果 custom_model 不为空且不是纯空格，则使用它
+        final_model = custom_model.strip() if custom_model and custom_model.strip() else model_name
+
         # 构建请求
         endpoint = api_base.rstrip("/") + "/kling/v1/videos/text2video"
         headers = http_headers_json(api_key)
 
         payload = {
-            "model_name": model_name,
+            "model_name": final_model,
             "prompt": prompt,
             "mode": mode,
             "duration": duration,
@@ -131,7 +139,7 @@ class KlingText2Video:
 
         # 调用 API
         try:
-            print(f"[ComfyUI_KuAi_Power] 创建可灵文生视频任务: {model_name}, {mode}, {duration}s")
+            print(f"[ComfyUI_KuAi_Power] 创建可灵文生视频任务: {final_model}, {mode}, {duration}s")
             resp = requests.post(endpoint, headers=headers, json=payload, timeout=int(timeout))
             raise_for_bad_status(resp, "创建文生视频任务失败")
 
@@ -163,7 +171,7 @@ class KlingImage2Video:
                     "tooltip": "图片 URL 或 Base64 编码"
                 }),
                 "model_name": (KLING_MODELS, {
-                    "default": "kling-v1",
+                    "default": "kling-v2-6",
                     "tooltip": "模型选择"
                 }),
                 "mode": (["std", "pro"], {
@@ -176,6 +184,10 @@ class KlingImage2Video:
                 }),
             },
             "optional": {
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型名称（留空使用上方下拉框选择的模型）"
+                }),
                 "prompt": ("STRING", {
                     "default": "",
                     "multiline": True,
@@ -211,7 +223,7 @@ class KlingImage2Video:
                     "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"
                 }),
                 "api_base": ("STRING", {
-                    "default": "https://api.kuai.host",
+                    "default": "https://ai.kegeai.top",
                     "tooltip": "API端点地址"
                 }),
                 "timeout": ("INT", {
@@ -235,6 +247,7 @@ class KlingImage2Video:
             "model_name": "模型名称",
             "mode": "模式",
             "duration": "时长",
+            "custom_model": "自定义模型",
             "prompt": "提示词",
             "image_tail": "尾帧图片",
             "negative_prompt": "负面提示词",
@@ -246,9 +259,9 @@ class KlingImage2Video:
             "timeout": "超时",
         }
 
-    def create(self, image, model_name="kling-v1", mode="std", duration="5",
-               prompt="", image_tail="", negative_prompt="", cfg_scale=0.5, multi_shot=False, watermark=False,
-               api_key="", api_base="https://api.kuai.host", timeout=120):
+    def create(self, image, model_name="kling-v2-6", mode="std", duration="5",
+               custom_model="", prompt="", image_tail="", negative_prompt="", cfg_scale=0.5, multi_shot=False, watermark=False,
+               api_key="", api_base="https://ai.kegeai.top", timeout=120):
         """创建图生视频任务"""
 
         # 解析 API key
@@ -259,12 +272,15 @@ class KlingImage2Video:
         if not image:
             raise RuntimeError("请提供图片 URL 或 Base64 编码")
 
+        # 处理自定义模型：如果 custom_model 不为空且不是纯空格，则使用它
+        final_model = custom_model.strip() if custom_model and custom_model.strip() else model_name
+
         # 构建请求
         endpoint = api_base.rstrip("/") + "/kling/v1/videos/image2video"
         headers = http_headers_json(api_key)
 
         payload = {
-            "model_name": model_name,
+            "model_name": final_model,
             "image": image,
             "mode": mode,
             "duration": duration,
@@ -289,7 +305,7 @@ class KlingImage2Video:
 
         # 调用 API
         try:
-            print(f"[ComfyUI_KuAi_Power] 创建可灵图生视频任务: {model_name}, {mode}, {duration}s")
+            print(f"[ComfyUI_KuAi_Power] 创建可灵图生视频任务: {final_model}, {mode}, {duration}s")
             resp = requests.post(endpoint, headers=headers, json=payload, timeout=int(timeout))
             raise_for_bad_status(resp, "创建图生视频任务失败")
 
@@ -342,7 +358,7 @@ class KlingQueryTask:
                     "tooltip": "API密钥"
                 }),
                 "api_base": ("STRING", {
-                    "default": "https://api.kuai.host",
+                    "default": "https://ai.kegeai.top",
                     "tooltip": "API端点地址"
                 }),
             }
@@ -365,7 +381,7 @@ class KlingQueryTask:
         }
 
     def query(self, task_id, wait=True, poll_interval_sec=15, timeout_sec=1200,
-              api_key="", api_base="https://api.kuai.host"):
+              api_key="", api_base="https://ai.kegeai.top"):
         """查询任务状态"""
 
         api_key = env_or(api_key, "KUAI_API_KEY")
@@ -453,7 +469,7 @@ class KlingText2VideoAndWait:
                     "tooltip": "视频提示词"
                 }),
                 "model_name": (KLING_MODELS, {
-                    "default": "kling-v1",
+                    "default": "kling-v2-6",
                     "tooltip": "模型选择"
                 }),
                 "mode": (["std", "pro"], {
@@ -470,12 +486,13 @@ class KlingText2VideoAndWait:
                 }),
             },
             "optional": {
+                "custom_model": ("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"default": "", "multiline": True}),
                 "cfg_scale": ("FLOAT", {"default": 0.5, "min": 0.0, "max": 1.0, "step": 0.1}),
                 "multi_shot": ("BOOLEAN", {"default": False}),
                 "watermark": ("BOOLEAN", {"default": False}),
                 "api_key": ("STRING", {"default": ""}),
-                "api_base": ("STRING", {"default": "https://api.kuai.host"}),
+                "api_base": ("STRING", {"default": "https://ai.kegeai.top"}),
                 "create_timeout": ("INT", {"default": 120, "min": 5, "max": 600}),
                 "poll_interval_sec": ("INT", {"default": 15, "min": 5, "max": 90}),
                 "wait_timeout_sec": ("INT", {"default": 1200, "min": 600, "max": 9600}),
@@ -495,6 +512,7 @@ class KlingText2VideoAndWait:
             "mode": "模式",
             "duration": "时长",
             "aspect_ratio": "宽高比",
+            "custom_model": "自定义模型",
             "negative_prompt": "负面提示词",
             "cfg_scale": "CFG强度",
             "multi_shot": "多镜头",
@@ -506,9 +524,9 @@ class KlingText2VideoAndWait:
             "wait_timeout_sec": "等待超时",
         }
 
-    def run(self, prompt, model_name="kling-v1", mode="std", duration="5", aspect_ratio="16:9",
-            negative_prompt="", cfg_scale=0.5, multi_shot=False, watermark=False,
-            api_key="", api_base="https://api.kuai.host",
+    def run(self, prompt, model_name="kling-v2-6", mode="std", duration="5", aspect_ratio="16:9",
+            custom_model="", negative_prompt="", cfg_scale=0.5, multi_shot=False, watermark=False,
+            api_key="", api_base="https://ai.kegeai.top",
             create_timeout=120, poll_interval_sec=15, wait_timeout_sec=1200):
         """一键创建并等待完成"""
 
@@ -516,7 +534,7 @@ class KlingText2VideoAndWait:
         creator = KlingText2Video()
         task_id, status, _ = creator.create(
             prompt=prompt, model_name=model_name, mode=mode, duration=duration, aspect_ratio=aspect_ratio,
-            negative_prompt=negative_prompt, cfg_scale=cfg_scale, multi_shot=multi_shot, watermark=watermark,
+            custom_model=custom_model, negative_prompt=negative_prompt, cfg_scale=cfg_scale, multi_shot=multi_shot, watermark=watermark,
             api_key=api_key, api_base=api_base, timeout=create_timeout
         )
 
@@ -543,7 +561,7 @@ class KlingImage2VideoAndWait:
                     "tooltip": "图片 URL 或 Base64"
                 }),
                 "model_name": (KLING_MODELS, {
-                    "default": "kling-v1",
+                    "default": "kling-v2-6",
                     "tooltip": "模型选择"
                 }),
                 "mode": (["std", "pro"], {
@@ -556,6 +574,7 @@ class KlingImage2VideoAndWait:
                 }),
             },
             "optional": {
+                "custom_model": ("STRING", {"default": ""}),
                 "prompt": ("STRING", {"default": "", "multiline": True}),
                 "image_tail": ("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"default": "", "multiline": True}),
@@ -563,7 +582,7 @@ class KlingImage2VideoAndWait:
                 "multi_shot": ("BOOLEAN", {"default": False}),
                 "watermark": ("BOOLEAN", {"default": False}),
                 "api_key": ("STRING", {"default": ""}),
-                "api_base": ("STRING", {"default": "https://api.kuai.host"}),
+                "api_base": ("STRING", {"default": "https://ai.kegeai.top"}),
                 "create_timeout": ("INT", {"default": 120, "min": 5, "max": 600}),
                 "poll_interval_sec": ("INT", {"default": 15, "min": 5, "max": 90}),
                 "wait_timeout_sec": ("INT", {"default": 1200, "min": 600, "max": 9600}),
@@ -582,6 +601,7 @@ class KlingImage2VideoAndWait:
             "model_name": "模型名称",
             "mode": "模式",
             "duration": "时长",
+            "custom_model": "自定义模型",
             "prompt": "提示词",
             "image_tail": "尾帧图片",
             "negative_prompt": "负面提示词",
@@ -595,9 +615,9 @@ class KlingImage2VideoAndWait:
             "wait_timeout_sec": "等待超时",
         }
 
-    def run(self, image, model_name="kling-v1", mode="std", duration="5",
-            prompt="", image_tail="", negative_prompt="", cfg_scale=0.5, multi_shot=False, watermark=False,
-            api_key="", api_base="https://api.kuai.host",
+    def run(self, image, model_name="kling-v2-6", mode="std", duration="5",
+            custom_model="", prompt="", image_tail="", negative_prompt="", cfg_scale=0.5, multi_shot=False, watermark=False,
+            api_key="", api_base="https://ai.kegeai.top",
             create_timeout=120, poll_interval_sec=15, wait_timeout_sec=1200):
         """一键创建并等待完成"""
 
@@ -605,7 +625,7 @@ class KlingImage2VideoAndWait:
         creator = KlingImage2Video()
         task_id, status, _ = creator.create(
             image=image, model_name=model_name, mode=mode, duration=duration,
-            prompt=prompt, image_tail=image_tail, negative_prompt=negative_prompt,
+            custom_model=custom_model, prompt=prompt, image_tail=image_tail, negative_prompt=negative_prompt,
             cfg_scale=cfg_scale, multi_shot=multi_shot, watermark=watermark,
             api_key=api_key, api_base=api_base, timeout=create_timeout
         )
