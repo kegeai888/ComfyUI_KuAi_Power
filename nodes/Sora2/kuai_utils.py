@@ -289,3 +289,34 @@ def get_duration_for_sora2_model(model: str, duration_sora2: str, duration_sora2
 
     # 默认回退：未知模型使用标准时长
     return int(duration_sora2)
+
+
+def get_duration_for_grok_model(model: str) -> int:
+    """
+    根据 Grok 模型名称返回对应的时长参数
+
+    Args:
+        model: 模型名称（可能包含时长说明，如 "grok-video-3-10s (10秒)"）
+
+    Returns:
+        int: 时长（秒）
+
+    模型映射：
+        - grok-video-3 → 6秒
+        - grok-video-3-10s → 10秒
+        - grok-video-3-15s → 15秒
+    """
+    model = model.strip().lower()
+
+    # 提取实际模型名称（去掉括号中的说明）
+    if " (" in model:
+        model = model.split(" (")[0].strip()
+
+    # 精确匹配
+    if "15s" in model or model.endswith("-15"):
+        return 15
+    elif "10s" in model or model.endswith("-10"):
+        return 10
+    else:
+        # 默认 6 秒（包括 grok-video-3 和未知模型）
+        return 6

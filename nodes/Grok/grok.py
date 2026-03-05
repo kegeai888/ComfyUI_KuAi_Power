@@ -11,6 +11,7 @@ from ..Sora2.kuai_utils import (
     ensure_list_from_urls,
     extract_error_message_from_response,
     extract_task_failure_detail,
+    get_duration_for_grok_model,
 )
 
 
@@ -91,6 +92,13 @@ class GrokCreateVideo:
         actual_model = model.split(" (")[0] if " (" in model else model
         effective_model = (custom_model or "").strip() or actual_model
 
+        # 根据模型获取对应的 duration
+        # 如果使用了 custom_model，默认 duration 为 15 秒
+        if (custom_model or "").strip():
+            duration = 15
+        else:
+            duration = get_duration_for_grok_model(model)
+
         # 解析图片URL列表
         images = ensure_list_from_urls(image_urls) if image_urls else []
 
@@ -99,6 +107,7 @@ class GrokCreateVideo:
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
             "size": size,
+            "duration": duration,
             "images": images
         }
 
@@ -437,11 +446,19 @@ class GrokImage2Video:
         actual_model = model.split(" (")[0] if " (" in model else model
         effective_model = (custom_model or "").strip() or actual_model
 
+        # 根据模型获取对应的 duration
+        # 如果使用了 custom_model，默认 duration 为 15 秒
+        if (custom_model or "").strip():
+            duration = 15
+        else:
+            duration = get_duration_for_grok_model(model)
+
         payload = {
             "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
             "size": size,
+            "duration": duration,
             "images": images_list
         }
 
@@ -682,11 +699,19 @@ class GrokText2Video:
         actual_model = model.split(" (")[0] if " (" in model else model
         effective_model = (custom_model or "").strip() or actual_model
 
+        # 根据模型获取对应的 duration
+        # 如果使用了 custom_model，默认 duration 为 15 秒
+        if (custom_model or "").strip():
+            duration = 15
+        else:
+            duration = get_duration_for_grok_model(model)
+
         payload = {
             "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
             "size": size,
+            "duration": duration,
             "images": []  # 文生视频不需要图片
         }
 
