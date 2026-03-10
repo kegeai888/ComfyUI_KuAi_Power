@@ -70,9 +70,12 @@
         "./output/grok_text2video_batch",
         2.0,
         "https://api.kegeai.top",
-        false,
+        true,
+        true,
+        "output/grok",
         1200,
-        10
+        10,
+        180
       ],
       "color": "#322",
       "bgcolor": "#533",
@@ -139,7 +142,7 @@
   "extra": {
     "workflow_info": {
       "name": "Grok 文生视频批量处理工作流",
-      "description": "使用CSV文件批量生成Grok文生视频，支持多种模型和参数配置",
+      "description": "使用CSV文件批量生成Grok文生视频，支持多种模型和参数配置，自动下载视频到本地output/grok目录",
       "version": "1.0.0",
       "author": "ComfyUI_KuAi_Power",
       "category": "Video Generation/Batch"

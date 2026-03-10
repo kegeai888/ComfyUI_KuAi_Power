@@ -209,6 +209,6 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "BatchImageUploader": "📤 批量上传本地图片",
+    "BatchImageUploader": "📤 批量上传本地图片（legacy）",
 }
 

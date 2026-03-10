@@ -39,7 +39,7 @@
       ],
       "color": "#232",
       "bgcolor": "#353",
-      "title": "📤 批量上传本地图片"
+      "title": "📤 批量上传本地图片（legacy）"
     },
     {
       "id": 2,
@@ -79,7 +79,7 @@
       ],
       "color": "#322",
       "bgcolor": "#533",
-      "title": "🔄 图片URL转Veo3批量任务"
+      "title": "🔄 图片URL转Veo3批量任务（legacy）"
     },
     {
       "id": 3,
@@ -126,7 +126,7 @@
       ],
       "color": "#223",
       "bgcolor": "#335",
-      "title": "📦 Veo3批量处理器"
+      "title": "📦 Veo3批量处理器（legacy）"
     },
     {
       "id": 4,
@@ -151,7 +151,7 @@
       ],
       "color": "#232",
       "bgcolor": "#353",
-      "title": "📊 处理结果显示"
+      "title": "📊 处理结果显示（legacy）"
     },
     {
       "id": 5,
@@ -176,7 +176,7 @@
       ],
       "color": "#232",
       "bgcolor": "#353",
-      "title": "📋 上传详情显示"
+      "title": "📋 上传详情显示（legacy）"
     }
   ],
   "links": [
@@ -190,7 +190,7 @@
   "config": {},
   "extra": {
     "workflow_info": {
-      "name": "Veo3 本地图片批量生成视频工作流",
+      "name": "Veo3 本地图片批量生成视频工作流（legacy）",
       "description": "从本地目录读取图片，批量上传后生成Veo3视频",
       "version": "1.0.0",
       "author": "ComfyUI_KuAi_Power",

@@ -222,11 +222,12 @@ class Veo3BatchProcessor:
             print(f"  参考图片: {image_urls[:50]}...")
 
         # 根据任务类型创建任务
+        # create() 返回 (task_id, status, status_update_time)，无 enhanced_prompt
         if task_type == "image2video" and image_urls:
-            # 图生视频
-            task_id, status, enhanced_prompt = self.image2video.create(
+            # 图生视频：image_urls 作为 image_1 传入
+            task_id, status, _ = self.image2video.create(
                 prompt=prompt,
-                image_urls=image_urls,
+                image_1=image_urls,
                 model=model,
                 aspect_ratio=aspect_ratio,
                 enhance_prompt=enhance_prompt,
@@ -237,7 +238,7 @@ class Veo3BatchProcessor:
             )
         else:
             # 文生视频
-            task_id, status, enhanced_prompt = self.text2video.create(
+            task_id, status, _ = self.text2video.create(
                 prompt=prompt,
                 model=model,
                 aspect_ratio=aspect_ratio,
@@ -250,15 +251,12 @@ class Veo3BatchProcessor:
 
         print(f"  任务ID: {task_id}")
         print(f"  状态: {status}")
-        if enhanced_prompt and enhanced_prompt != prompt:
-            print(f"  增强提示词: {enhanced_prompt[:50]}...")
 
         # 任务信息
         task_info = {
             "task_id": task_id,
             "task_type": task_type,
             "prompt": prompt,
-            "enhanced_prompt": enhanced_prompt,
             "model": model,
             "aspect_ratio": aspect_ratio,
             "status": status,
@@ -291,40 +289,42 @@ class Veo3BatchProcessor:
 
     def _wait_for_task(self, task_id, task_info, api_key, api_base,
                       max_wait_time, poll_interval):
-        """等待任务完成"""
+        """等待任务完成（轮询每个 task 直到 completed/failed 或超时）"""
         elapsed = 0
         while elapsed < max_wait_time:
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+
             try:
-                # 查询任务状态
-                status, video_url, error_msg = self.querier.query(
+                # querier.query 返回 (status, video_url, enhanced_prompt, raw_json)
+                status, video_url, enhanced_prompt, _ = self.querier.query(
                     task_id=task_id,
                     api_base=api_base,
                     api_key=api_key
                 )
 
                 task_info["status"] = status
+                if enhanced_prompt:
+                    task_info["enhanced_prompt"] = enhanced_prompt
 
                 if status == "completed":
                     task_info["video_url"] = video_url
-                    print(f"  ✓ 任务完成，视频URL: {video_url[:50]}...")
-                    break
-                elif status == "failed":
-                    task_info["error"] = error_msg
-                    raise RuntimeError(f"任务失败: {error_msg}")
-                else:
-                    print(f"  状态: {status}, 已等待 {elapsed}秒...")
+                    task_info["completed_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"  ✓ 任务完成！视频URL: {video_url[:60]}...")
+                    return task_info
 
+                print(f"  进行中... 已等待 {elapsed}/{max_wait_time} 秒")
+
+            except RuntimeError:
+                # query 内部在 failed 状态时抛 RuntimeError，直接上抛
+                raise
             except Exception as e:
-                print(f"  查询失败: {str(e)}")
-                break
+                # 网络抖动等临时错误，继续轮询
+                print(f"  查询出错（将继续重试）: {str(e)}")
 
-            time.sleep(poll_interval)
-            elapsed += poll_interval
-
-        if elapsed >= max_wait_time and task_info["status"] not in ["completed", "failed"]:
-            print(f"  ⚠ 等待超时，任务仍在处理中")
-            task_info["timeout"] = True
-
+        # 超时
+        print(f"  ⚠ 等待超时（{max_wait_time}秒），任务仍在进行中")
+        task_info["timeout"] = True
         return task_info
 
 

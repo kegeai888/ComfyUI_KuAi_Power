@@ -110,6 +110,8 @@
   ],
   "groups": [],
   "config": {},
-  "extra": {},
+  "extra": {
+    "title": "Veo3 CSV 并发图生视频工作流（legacy）"
+  },
   "version": 0.4
 }

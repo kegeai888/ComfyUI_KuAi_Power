@@ -10,6 +10,13 @@ from .grok import (
     GrokText2VideoAndWait
 )
 from .batch_processor import GrokBatchProcessor
+from .concurrent_processor import (
+    GrokText2Video10Concurrent,
+    GrokImage2Video10Concurrent,
+)
+from .csv_concurrent_processor import GrokCSVConcurrentProcessor
+from .batch_image_to_csv_task import GrokBatchImageToCSVTask
+from .dir_batch_image2video import GrokDirBatchImage2Video
 
 NODE_CLASS_MAPPINGS = {
     "GrokCreateVideo": GrokCreateVideo,
@@ -20,6 +27,11 @@ NODE_CLASS_MAPPINGS = {
     "GrokText2Video": GrokText2Video,
     "GrokText2VideoAndWait": GrokText2VideoAndWait,
     "GrokBatchProcessor": GrokBatchProcessor,
+    "GrokText2Video10Concurrent": GrokText2Video10Concurrent,
+    "GrokImage2Video10Concurrent": GrokImage2Video10Concurrent,
+    "GrokCSVConcurrentProcessor": GrokCSVConcurrentProcessor,
+    "GrokBatchImageToCSVTask": GrokBatchImageToCSVTask,
+    "GrokDirBatchImage2Video": GrokDirBatchImage2Video,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -31,5 +43,11 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "GrokText2Video": "📝 Grok 文生视频",
     "GrokText2VideoAndWait": "⚡ Grok 文生视频（一键）",
     "GrokBatchProcessor": "📦 Grok 批量处理器",
+    "GrokText2Video10Concurrent": "⚡ Grok 文生视频（10路并发）",
+    "GrokImage2Video10Concurrent": "⚡ Grok 图生视频（10路并发）",
+    "GrokCSVConcurrentProcessor": "📦 Grok CSV 并发批量处理器（legacy）",
+    "GrokBatchImageToCSVTask": "📋 Grok 批量图片转任务列表（legacy）",
+    "GrokDirBatchImage2Video": "⚡ Grok 目录批量图生视频（一键闭环）",
 }
 
+__all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']
