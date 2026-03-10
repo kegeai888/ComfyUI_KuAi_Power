@@ -33,7 +33,7 @@
     },
     {
       "id": 2,
-      "type": "GrokBatchProcessor",
+      "type": "GrokCSVConcurrentProcessor",
       "pos": [600, 100],
       "size": [450, 400],
       "flags": {},
@@ -48,14 +48,14 @@
       ],
       "outputs": [
         {
-          "name": "处理结果",
+          "name": "处理报告",
           "type": "STRING",
           "links": [2],
           "shape": 3,
           "slot_index": 0
         },
         {
-          "name": "输出目录",
+          "name": "视频保存目录",
           "type": "STRING",
           "links": [3],
           "shape": 3,
@@ -63,23 +63,24 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "GrokBatchProcessor"
+        "Node name for S&R": "GrokCSVConcurrentProcessor"
       },
       "widgets_values": [
         "",
-        "./output/grok_text2video_batch",
-        2.0,
-        "https://api.kegeai.top",
-        true,
-        true,
         "output/grok",
+        10,
+        "grok-video-3 (6秒)",
+        "3:2",
+        "720P",
+        true,
+        "https://api.kegeai.top",
         1200,
         10,
         180
       ],
       "color": "#322",
       "bgcolor": "#533",
-      "title": "📦 Grok批量处理器"
+      "title": "📦 Grok CSV 并发批量处理器"
     },
     {
       "id": 3,
@@ -141,11 +142,11 @@
   "config": {},
   "extra": {
     "workflow_info": {
-      "name": "Grok 文生视频批量处理工作流",
-      "description": "使用CSV文件批量生成Grok文生视频，支持多种模型和参数配置，自动下载视频到本地output/grok目录",
-      "version": "1.0.0",
+      "name": "Grok 文生视频批量处理工作流（并发）",
+      "description": "使用CSV文件批量生成Grok文生视频，支持10路并发处理，支持多种模型和参数配置，自动下载视频到本地output/grok目录。大幅提升处理效率。",
+      "version": "2.0.0",
       "author": "ComfyUI_KuAi_Power",
-      "category": "Video Generation/Batch"
+      "category": "Video Generation/Batch/Concurrent"
     }
   },
   "version": 0.4

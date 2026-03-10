@@ -31,8 +31,15 @@ class CSVBatchReader:
         return {
             "required": {},
             "optional": {
-                "csv_file": (csv_files if csv_files else [""], {"tooltip": "从 input 目录选择 CSV 文件"}),
-                "csv_path": ("STRING", {"default": "", "multiline": False, "tooltip": "或输入完整路径"}),
+                "csv_file": (csv_files if csv_files else [""], {
+                    "tooltip": "从 input 目录选择 CSV 文件（可通过拖放文件到 ComfyUI 界面上传）",
+                    "image_upload": True  # 启用文件上传功能
+                }),
+                "csv_path": ("STRING", {
+                    "default": "",
+                    "multiline": False,
+                    "tooltip": "或输入完整路径"
+                }),
             }
         }
 
