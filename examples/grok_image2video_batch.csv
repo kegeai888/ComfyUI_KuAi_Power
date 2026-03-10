@@ -1,0 +1,8 @@
+prompt,model,aspect_ratio,size,enhance_prompt,image_urls,output_prefix
+"让这张图片动起来，添加柔和的镜头运动和自然光效",grok-video-3 (6秒),3:2,1080P,true,https://images.unsplash.com/photo-1506905925346-21bda4d32df4,mountain_animate
+"为这个场景添加动态效果，电影风格",grok-video-3-10s (10秒),2:3,1080P,true,https://images.unsplash.com/photo-1518791841217-8f162f1e1131,cat_dynamic
+"将这张图片转换为视频，流畅过渡",grok-video-3 (6秒),1:1,720P,true,https://images.unsplash.com/photo-1469474968028-56623f02e42e,nature_transition
+"添加镜头推进效果，突出主体，电影级质感",grok-video-3-10s (10秒),3:2,1080P,true,https://images.unsplash.com/photo-1511593358241-7eea1f3c84e5,city_zoom
+"让画面中的元素动起来，保持整体构图，自然流畅",grok-video-3-15s (15秒),3:2,1080P,true,https://images.unsplash.com/photo-1507525428034-b723cf961d3e,beach_motion
+"添加环绕镜头运动，展现空间感，稳定流畅",grok-video-3-10s (10秒),2:3,1080P,true,https://images.unsplash.com/photo-1441974231531-c6227db76b6e,forest_orbit
+"让这张静态图片充满生命力，微妙的动态效果",grok-video-3 (6秒),1:1,720P,true,https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05,sunset_life

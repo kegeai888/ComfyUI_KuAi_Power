@@ -10,6 +10,8 @@ app.registerExtension({
       "Veo3": "🚀 Veo3.1 视频生成",
       "Grok": "🤖 Grok 视频生成",
       "Kling": "🎞️ 可灵视频生成",
+      "WAN": "⚡ WAN 视频生成",
+      "Gemini": "🔍 Gemini 理解",
       "NanoBanana": "🍌 Nano Banana 图像生成",
       "Utils": "🛠️ 工具节点",
       "Product": "📦 产品管理",

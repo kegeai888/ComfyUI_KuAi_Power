@@ -1,0 +1,8 @@
+task_type,prompt,model,aspect_ratio,enhance_prompt,enable_upsample,image_urls,output_prefix
+image2video,"让这张山景图动起来，添加云雾流动效果，柔和的镜头推进",veo3.1,16:9,true,true,https://images.unsplash.com/photo-1506905925346-21bda4d32df4,mountain_clouds
+image2video,"为这只猫咪添加动态效果，眨眼和轻微的头部转动，自然流畅",veo3.1,9:16,true,true,https://images.unsplash.com/photo-1518791841217-8f162f1e1131,cat_blink
+image2video,"让这片森林充满生命力，树叶摇曳，阳光闪烁",veo3-fast,16:9,true,false,https://images.unsplash.com/photo-1441974231531-c6227db76b6e,forest_alive
+image2video,"城市街景动画化，添加车辆行驶和行人走动，繁忙氛围",veo3.1,16:9,true,true,https://images.unsplash.com/photo-1511593358241-7eea1f3c84e5,city_busy
+image2video,"海滩日落场景，添加海浪拍打和天空云彩流动",veo3.1,16:9,true,true,https://images.unsplash.com/photo-1507525428034-b723cf961d3e,beach_sunset
+image2video,"让这朵花绽放，添加微风吹拂效果，细腻的花瓣颤动",veo3.1,9:16,true,true,https://images.unsplash.com/photo-1490750967868-88aa4486c946,flower_bloom
+image2video,"瀑布场景动画化，水流飞溅，雾气弥漫，壮观效果",veo3-fast,9:16,true,false,https://images.unsplash.com/photo-1432405972618-c60b0225b8f9,waterfall_flow

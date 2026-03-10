@@ -1,0 +1,149 @@
+{
+  "last_node_id": 4,
+  "last_link_id": 3,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "CSVBatchReader",
+      "pos": [100, 100],
+      "size": [400, 200],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "批量任务",
+          "type": "STRING",
+          "links": [1],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CSVBatchReader"
+      },
+      "widgets_values": [
+        "veo3_image2video_batch.csv",
+        "",
+        "utf-8"
+      ],
+      "color": "#232",
+      "bgcolor": "#353",
+      "title": "📂 CSV批量读取器"
+    },
+    {
+      "id": 2,
+      "type": "Veo3BatchProcessor",
+      "pos": [600, 100],
+      "size": [450, 400],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "batch_tasks",
+          "type": "STRING",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "处理结果",
+          "type": "STRING",
+          "links": [2],
+          "shape": 3,
+          "slot_index": 0
+        },
+        {
+          "name": "输出目录",
+          "type": "STRING",
+          "links": [3],
+          "shape": 3,
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Veo3BatchProcessor"
+      },
+      "widgets_values": [
+        "",
+        "./output/veo3_image2video_batch",
+        2.0,
+        "https://api.kegeai.top",
+        false,
+        1200,
+        15
+      ],
+      "color": "#322",
+      "bgcolor": "#533",
+      "title": "📦 Veo3批量处理器"
+    },
+    {
+      "id": 3,
+      "type": "ShowText",
+      "pos": [1150, 100],
+      "size": [400, 300],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 2
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ShowText"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "color": "#223",
+      "bgcolor": "#335",
+      "title": "📊 处理结果显示"
+    },
+    {
+      "id": 4,
+      "type": "ShowText",
+      "pos": [1150, 450],
+      "size": [400, 150],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ShowText"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "color": "#223",
+      "bgcolor": "#335",
+      "title": "📁 输出目录显示"
+    }
+  ],
+  "links": [
+    [1, 1, 0, 2, 0, "STRING"],
+    [2, 2, 0, 3, 0, "STRING"],
+    [3, 2, 1, 4, 0, "STRING"]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "workflow_info": {
+      "name": "Veo3 图生视频批量处理工作流",
+      "description": "使用CSV文件批量生成Veo3图生视频，支持参考图片URL和多种参数配置",
+      "version": "1.0.0",
+      "author": "ComfyUI_KuAi_Power",
+      "category": "Video Generation/Batch"
+    }
+  },
+  "version": 0.4
+}

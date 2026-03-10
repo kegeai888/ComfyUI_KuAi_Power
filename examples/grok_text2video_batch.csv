@@ -1,0 +1,9 @@
+prompt,model,aspect_ratio,size,enhance_prompt,output_prefix
+"一只可爱的小猫在阳光明媚的花园里玩彩色球，慢动作，电影级灯光",grok-video-3 (6秒),3:2,1080P,true,cat_playing
+"一只雄鹰在日落时分翱翔云端，航拍视角，4K画质",grok-video-3-10s (10秒),3:2,1080P,true,eagle_sunset
+"一位舞者在雨中表演，戏剧性灯光，特写镜头，艺术风格",grok-video-3 (6秒),2:3,1080P,true,dancer_rain
+"美丽的山川河流风景，延时摄影，黄金时刻",grok-video-3-15s (15秒),1:1,720P,true,landscape_timelapse
+"一辆跑车在海岸公路上行驶，跟踪镜头，电影感",grok-video-3-10s (10秒),3:2,1080P,true,car_highway
+"城市夜景延时，霓虹灯闪烁，繁华街道",grok-video-3 (6秒),3:2,1080P,true,city_night
+"海浪拍打礁石，慢动作，自然光，宁静氛围",grok-video-3-10s (10秒),2:3,1080P,true,ocean_waves
+"森林中的阳光穿过树叶，光影效果，清晨氛围",grok-video-3 (6秒),1:1,720P,true,forest_light

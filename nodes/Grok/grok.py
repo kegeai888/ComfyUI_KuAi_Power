@@ -25,7 +25,7 @@ class GrokCreateVideo:
                 "prompt": ("STRING", {
                     "default": "",
                     "multiline": True,
-                    "tooltip": "视频生成提示词"
+                    "tooltip": "视频生成提示词（支持中英文）"
                 }),
                 "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
                     "default": "grok-video-3 (6秒)",
@@ -38,6 +38,10 @@ class GrokCreateVideo:
                 "size": (["720P", "1080P"], {
                     "default": "1080P",
                     "tooltip": "视频分辨率"
+                }),
+                "enhance_prompt": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "自动将中文提示词优化并翻译为英文"
                 }),
                 "api_key": ("STRING", {
                     "default": "",
@@ -68,6 +72,7 @@ class GrokCreateVideo:
             "model": "模型",
             "aspect_ratio": "宽高比",
             "size": "分辨率",
+            "enhance_prompt": "提示词增强",
             "api_key": "API密钥",
             "image_urls": "参考图片URL",
             "custom_model": "自定义模型",
@@ -79,7 +84,7 @@ class GrokCreateVideo:
     FUNCTION = "create"
     CATEGORY = "KuAi/Grok"
 
-    def create(self, prompt, model, aspect_ratio, size, api_key="", image_urls="", api_base="https://api.kegeai.top", custom_model=""):
+    def create(self, prompt, model, aspect_ratio, size, enhance_prompt, api_key="", image_urls="", api_base="https://api.kegeai.top", custom_model=""):
         """创建 Grok 视频生成任务"""
         api_key = env_or(api_key, "KUAI_API_KEY")
         if not api_key:
@@ -114,10 +119,13 @@ class GrokCreateVideo:
             "aspect_ratio": aspect_ratio,
             "size": effective_size,
             "duration": duration,
+            "enhance_prompt": bool(enhance_prompt),
             "images": images
         }
 
         print(f"[ComfyUI_KuAi_Power] Grok 创建视频任务: {prompt[:50]}...")
+        if enhance_prompt:
+            print(f"[ComfyUI_KuAi_Power] 提示词增强: 已启用")
 
         try:
             resp = requests.post(
@@ -136,6 +144,8 @@ class GrokCreateVideo:
             enhanced_prompt = result.get("enhanced_prompt", "")
 
             print(f"[ComfyUI_KuAi_Power] Grok 任务已创建: {task_id}, 状态: {status}")
+            if enhanced_prompt and enhanced_prompt != prompt:
+                print(f"[ComfyUI_KuAi_Power] 增强后的提示词: {enhanced_prompt[:100]}...")
 
             return (task_id, status, enhanced_prompt)
 
@@ -259,6 +269,10 @@ class GrokCreateAndWait:
                     "default": "1080P",
                     "tooltip": "视频分辨率"
                 }),
+                                "enhance_prompt": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "自动将中文提示词优化并翻译为英文"
+                }),
                 "api_key": ("STRING", {
                     "default": "",
                     "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"
@@ -300,6 +314,7 @@ class GrokCreateAndWait:
             "model": "模型",
             "aspect_ratio": "宽高比",
             "size": "分辨率",
+            "enhance_prompt": "提示词增强",
             "api_key": "API密钥",
             "image_urls": "参考图片URL",
             "custom_model": "自定义模型",
@@ -313,7 +328,7 @@ class GrokCreateAndWait:
     FUNCTION = "create_and_wait"
     CATEGORY = "KuAi/Grok"
 
-    def create_and_wait(self, prompt, model, aspect_ratio, size, api_key="",
+    def create_and_wait(self, prompt, model, aspect_ratio, size, enhance_prompt=True, api_key="",
                        image_urls="", api_base="https://api.kegeai.top",
                        max_wait_time=1200, poll_interval=10, custom_model=""):
         """创建 Grok 视频并等待完成"""
@@ -324,6 +339,7 @@ class GrokCreateAndWait:
             model=model,
             aspect_ratio=aspect_ratio,
             size=size,
+            enhance_prompt=enhance_prompt,
             api_key=api_key,
             image_urls=image_urls,
             api_base=api_base,
@@ -397,6 +413,10 @@ class GrokImage2Video:
                     "default": "720P",
                     "tooltip": "视频分辨率（暂只支持720P）"
                 }),
+                                "enhance_prompt": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "自动将中文提示词优化并翻译为英文"
+                }),
                 "api_key": ("STRING", {
                     "default": "",
                     "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"
@@ -422,6 +442,7 @@ class GrokImage2Video:
             "model": "模型",
             "aspect_ratio": "宽高比",
             "size": "分辨率",
+            "enhance_prompt": "提示词增强",
             "api_key": "API密钥",
             "custom_model": "自定义模型",
             "api_base": "API地址"
@@ -432,7 +453,7 @@ class GrokImage2Video:
     FUNCTION = "create"
     CATEGORY = "KuAi/Grok"
 
-    def create(self, images, prompt, model, aspect_ratio, size, api_key="", api_base="https://api.kegeai.top", custom_model=""):
+    def create(self, images, prompt, model, aspect_ratio, size, enhance_prompt=True, api_key="", api_base="https://api.kegeai.top", custom_model=""):
         """创建 Grok 图生视频任务"""
         # 1. 解析 API key
         api_key = env_or(api_key, "KUAI_API_KEY")
@@ -471,6 +492,7 @@ class GrokImage2Video:
             "aspect_ratio": aspect_ratio,
             "size": effective_size,
             "duration": duration,
+            "enhance_prompt": bool(enhance_prompt),
             "images": images_list
         }
 
@@ -536,6 +558,10 @@ class GrokImage2VideoAndWait:
                     "default": "720P",
                     "tooltip": "视频分辨率（暂只支持720P）"
                 }),
+                                "enhance_prompt": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "自动将中文提示词优化并翻译为英文"
+                }),
                 "api_key": ("STRING", {
                     "default": "",
                     "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"
@@ -573,6 +599,7 @@ class GrokImage2VideoAndWait:
             "model": "模型",
             "aspect_ratio": "宽高比",
             "size": "分辨率",
+            "enhance_prompt": "提示词增强",
             "api_key": "API密钥",
             "api_base": "API地址",
             "custom_model": "自定义模型",
@@ -664,6 +691,10 @@ class GrokText2Video:
                     "default": "720P",
                     "tooltip": "视频分辨率（暂只支持720P）"
                 }),
+                                "enhance_prompt": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "自动将中文提示词优化并翻译为英文"
+                }),
                 "api_key": ("STRING", {
                     "default": "",
                     "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"
@@ -688,6 +719,7 @@ class GrokText2Video:
             "model": "模型",
             "aspect_ratio": "宽高比",
             "size": "分辨率",
+            "enhance_prompt": "提示词增强",
             "api_key": "API密钥",
             "api_base": "API地址",
             "custom_model": "自定义模型"
@@ -698,7 +730,7 @@ class GrokText2Video:
     FUNCTION = "create"
     CATEGORY = "KuAi/Grok"
 
-    def create(self, prompt, model, aspect_ratio, size, api_key="", api_base="https://api.kegeai.top", custom_model=""):
+    def create(self, prompt, model, aspect_ratio, size, enhance_prompt=True, api_key="", api_base="https://api.kegeai.top", custom_model=""):
         """创建 Grok 文生视频任务"""
         api_key = env_or(api_key, "KUAI_API_KEY")
         if not api_key:
@@ -730,6 +762,7 @@ class GrokText2Video:
             "aspect_ratio": aspect_ratio,
             "size": effective_size,
             "duration": duration,
+            "enhance_prompt": bool(enhance_prompt),
             "images": []  # 文生视频不需要图片
         }
 
@@ -785,6 +818,10 @@ class GrokText2VideoAndWait:
                     "default": "720P",
                     "tooltip": "视频分辨率（暂只支持720P）"
                 }),
+                                "enhance_prompt": ("BOOLEAN", {
+                    "default": True,
+                    "tooltip": "自动将中文提示词优化并翻译为英文"
+                }),
                 "api_key": ("STRING", {
                     "default": "",
                     "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"
@@ -821,6 +858,7 @@ class GrokText2VideoAndWait:
             "model": "模型",
             "aspect_ratio": "宽高比",
             "size": "分辨率",
+            "enhance_prompt": "提示词增强",
             "api_key": "API密钥",
             "api_base": "API地址",
             "custom_model": "自定义模型",

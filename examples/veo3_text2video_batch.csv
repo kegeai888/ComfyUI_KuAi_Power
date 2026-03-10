@@ -1,0 +1,9 @@
+task_type,prompt,model,aspect_ratio,enhance_prompt,enable_upsample,output_prefix
+text2video,"一只可爱的小猫在阳光明媚的花园里追逐蝴蝶，慢动作，电影级灯光",veo3.1,9:16,true,true,cat_butterfly
+text2video,"雄鹰在壮丽的山峰间翱翔，日出时分，航拍视角，4K画质",veo3.1,16:9,true,true,eagle_mountains
+text2video,"舞者在雨中优雅地旋转，戏剧性灯光，特写镜头，艺术风格",veo3.1,9:16,true,true,dancer_rain
+text2video,"城市夜景延时摄影，霓虹灯闪烁，车流如织，繁华街道",veo3-fast,16:9,true,false,city_night
+text2video,"海浪拍打礁石，慢动作，自然光，宁静氛围，海鸥飞过",veo3.1,16:9,true,true,ocean_waves
+text2video,"森林中的阳光穿过树叶，光影效果，清晨氛围，鸟鸣声",veo3-fast,9:16,true,false,forest_light
+text2video,"跑车在海岸公路上疾驰，跟踪镜头，电影感，夕阳余晖",veo3.1,16:9,true,true,car_highway
+text2video,"樱花飘落的公园，情侣漫步，浪漫氛围，柔和色调",veo3.1,9:16,true,true,cherry_blossom

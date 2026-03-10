@@ -1,18 +1,19 @@
-"""Grok 批量视频生成处理器"""
+"""Veo3 批量视频生成处理器"""
 
 import json
 import os
 import time
 from ..Sora2.kuai_utils import env_or
-from .grok import GrokCreateVideo, GrokQueryVideo
+from .veo3 import VeoText2Video, VeoImage2Video, VeoQueryTask
 
 
-class GrokBatchProcessor:
-    """Grok 批量视频生成处理器"""
+class Veo3BatchProcessor:
+    """Veo3 批量视频生成处理器"""
 
     def __init__(self):
-        self.creator = GrokCreateVideo()
-        self.querier = GrokQueryVideo()
+        self.text2video = VeoText2Video()
+        self.image2video = VeoImage2Video()
+        self.querier = VeoQueryTask()
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -27,7 +28,7 @@ class GrokBatchProcessor:
                     "tooltip": "API 密钥（留空使用环境变量 KUAI_API_KEY）"
                 }),
                 "output_dir": ("STRING", {
-                    "default": "./output/grok_batch",
+                    "default": "./output/veo3_batch",
                     "tooltip": "输出目录（保存任务信息）"
                 }),
                 "delay_between_tasks": ("FLOAT", {
@@ -50,11 +51,11 @@ class GrokBatchProcessor:
                 "max_wait_time": ("INT", {
                     "default": 1200,
                     "min": 60,
-                    "max": 1800,
+                    "max": 3600,
                     "tooltip": "单个任务最大等待时间（秒）"
                 }),
                 "poll_interval": ("INT", {
-                    "default": 10,
+                    "default": 15,
                     "min": 5,
                     "max": 60,
                     "tooltip": "轮询间隔（秒）"
@@ -78,11 +79,11 @@ class GrokBatchProcessor:
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("处理结果", "输出目录")
     FUNCTION = "process_batch"
-    CATEGORY = "KuAi/Grok"
+    CATEGORY = "KuAi/Veo3"
 
-    def process_batch(self, batch_tasks, api_key="", output_dir="./output/grok_batch",
+    def process_batch(self, batch_tasks, api_key="", output_dir="./output/veo3_batch",
                      delay_between_tasks=2.0, api_base="https://api.kegeai.top",
-                     wait_for_completion=False, max_wait_time=1200, poll_interval=10):
+                     wait_for_completion=False, max_wait_time=1200, poll_interval=15):
         """批量处理视频生成任务"""
         try:
             # 解析任务数据
@@ -108,9 +109,9 @@ class GrokBatchProcessor:
             }
 
             print(f"\n{'='*60}")
-            print(f"[GrokBatch] 开始批量处理 {len(tasks)} 个视频生成任务")
-            print(f"[GrokBatch] 输出目录: {output_dir}")
-            print(f"[GrokBatch] 等待完成: {'是' if wait_for_completion else '否'}")
+            print(f"[Veo3Batch] 开始批量处理 {len(tasks)} 个视频生成任务")
+            print(f"[Veo3Batch] 输出目录: {output_dir}")
+            print(f"[Veo3Batch] 等待完成: {'是' if wait_for_completion else '否'}")
             print(f"{'='*60}\n")
 
             # 逐个处理任务
@@ -142,7 +143,7 @@ class GrokBatchProcessor:
             tasks_file = os.path.join(output_dir, "tasks.json")
             with open(tasks_file, 'w', encoding='utf-8') as f:
                 json.dump(results["task_ids"], f, ensure_ascii=False, indent=2)
-            print(f"\n[GrokBatch] 任务列表已保存到: {tasks_file}")
+            print(f"\n[Veo3Batch] 任务列表已保存到: {tasks_file}")
 
             # 生成结果报告
             report = self._generate_report(results)
@@ -154,7 +155,7 @@ class GrokBatchProcessor:
 
         except Exception as e:
             error_msg = f"批量处理失败: {str(e)}"
-            print(f"\033[91m[GrokBatch] {error_msg}\033[0m")
+            print(f"\033[91m[Veo3Batch] {error_msg}\033[0m")
             raise RuntimeError(error_msg)
 
     def _process_single_task(self, task, task_idx, api_key, api_base, output_dir,
@@ -165,101 +166,120 @@ class GrokBatchProcessor:
         if not prompt:
             raise ValueError("提示词 (prompt) 不能为空")
 
+        # 任务类型
+        task_type = task.get("task_type", "text2video").strip().lower()
+
         # 可选参数（带默认值）
-        aspect_ratio = task.get("aspect_ratio", "3:2").strip()
-        size = task.get("size", "1080P").strip()
+        model = task.get("model", "veo3.1").strip()
+        aspect_ratio = task.get("aspect_ratio", "9:16").strip()
+        enhance_prompt = task.get("enhance_prompt", "true").strip().lower() in ["true", "1", "yes"]
+        enable_upsample = task.get("enable_upsample", "true").strip().lower() in ["true", "1", "yes"]
         image_urls = task.get("image_urls", "").strip()
         output_prefix = task.get("output_prefix", f"task_{task_idx}").strip()
-        enhance_prompt = task.get("enhance_prompt", "true").strip().lower() in ["true", "1", "yes"]
+        custom_model = task.get("custom_model", "").strip()
 
         # 验证参数
-        if aspect_ratio not in ["1:1", "2:3", "3:2"]:
-            raise ValueError(f"无效的宽高比: {aspect_ratio}，必须是 1:1, 2:3 或 3:2")
-        if size not in ["720P", "1080P"]:
-            raise ValueError(f"无效的分辨率: {size}，必须是 720P 或 1080P")
+        if aspect_ratio not in ["16:9", "9:16"]:
+            raise ValueError(f"无效的宽高比: {aspect_ratio}，必须是 16:9 或 9:16")
 
+        print(f"  任务类型: {task_type}")
         print(f"  提示词: {prompt[:50]}...")
-        print(f"  宽高比: {aspect_ratio}, 分辨率: {size}")
-        print(f"  提示词增强: {enhance_prompt}")
+        print(f"  模型: {model}, 宽高比: {aspect_ratio}")
+        print(f"  增强提示词: {enhance_prompt}, 超分: {enable_upsample}")
         if image_urls:
             print(f"  参考图片: {image_urls[:50]}...")
 
-        # 创建任务
-        task_id, status, enhanced_prompt = self.creator.create(
-            prompt=prompt,
-            model="grok-video-3 (6秒)",
-            aspect_ratio=aspect_ratio,
-            size=size,
-            enhance_prompt=enhance_prompt,
-            api_key=api_key,
-            image_urls=image_urls,
-            api_base=api_base
-        )
+        # 根据任务类型创建任务
+        if task_type == "image2video" and image_urls:
+            # 图生视频
+            task_id, status, enhanced_prompt = self.image2video.create(
+                prompt=prompt,
+                image_urls=image_urls,
+                model=model,
+                aspect_ratio=aspect_ratio,
+                enhance_prompt=enhance_prompt,
+                enable_upsample=enable_upsample,
+                api_base=api_base,
+                api_key=api_key,
+                custom_model=custom_model
+            )
+        else:
+            # 文生视频
+            task_id, status, enhanced_prompt = self.text2video.create(
+                prompt=prompt,
+                model=model,
+                aspect_ratio=aspect_ratio,
+                enhance_prompt=enhance_prompt,
+                enable_upsample=enable_upsample,
+                api_base=api_base,
+                api_key=api_key,
+                custom_model=custom_model
+            )
 
         print(f"  任务ID: {task_id}")
         print(f"  状态: {status}")
+        if enhanced_prompt and enhanced_prompt != prompt:
+            print(f"  增强提示词: {enhanced_prompt[:50]}...")
 
         # 任务信息
         task_info = {
             "task_id": task_id,
+            "task_type": task_type,
             "prompt": prompt,
-            "aspect_ratio": aspect_ratio,
-            "size": size,
-            "image_urls": image_urls,
-            "output_prefix": output_prefix,
-            "status": status,
             "enhanced_prompt": enhanced_prompt,
-            "video_url": None,
+            "model": model,
+            "aspect_ratio": aspect_ratio,
+            "status": status,
+            "output_prefix": output_prefix,
             "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
         }
 
         # 如果需要等待完成
         if wait_for_completion:
-            print(f"  等待视频生成完成...")
-            task_info = self._wait_for_completion(
-                task_id, task_info, api_key, api_base, max_wait_time, poll_interval
+            print(f"  等待任务完成...")
+            task_info = self._wait_for_task(
+                task_id, task_info, api_key, api_base,
+                max_wait_time, poll_interval
             )
-
-        # 保存任务信息
-        task_file = os.path.join(output_dir, f"{output_prefix}_{task_id.replace(':', '_')}.json")
-        with open(task_file, 'w', encoding='utf-8') as f:
-            json.dump(task_info, f, ensure_ascii=False, indent=2)
 
         return task_info
 
-    def _wait_for_completion(self, task_id, task_info, api_key, api_base, max_wait_time, poll_interval):
+    def _wait_for_task(self, task_id, task_info, api_key, api_base,
+                      max_wait_time, poll_interval):
         """等待任务完成"""
         elapsed = 0
-
         while elapsed < max_wait_time:
+            try:
+                # 查询任务状态
+                status, video_url, error_msg = self.querier.query(
+                    task_id=task_id,
+                    api_base=api_base,
+                    api_key=api_key
+                )
+
+                task_info["status"] = status
+
+                if status == "completed":
+                    task_info["video_url"] = video_url
+                    print(f"  ✓ 任务完成，视频URL: {video_url[:50]}...")
+                    break
+                elif status == "failed":
+                    task_info["error"] = error_msg
+                    raise RuntimeError(f"任务失败: {error_msg}")
+                else:
+                    print(f"  状态: {status}, 已等待 {elapsed}秒...")
+
+            except Exception as e:
+                print(f"  查询失败: {str(e)}")
+                break
+
             time.sleep(poll_interval)
             elapsed += poll_interval
 
-            try:
-                _, status, video_url, enhanced_prompt, _ = self.querier.query(task_id, api_key, api_base)
+        if elapsed >= max_wait_time and task_info["status"] not in ["completed", "failed"]:
+            print(f"  ⚠ 等待超时，任务仍在处理中")
+            task_info["timeout"] = True
 
-                task_info["status"] = status
-                task_info["video_url"] = video_url
-                if enhanced_prompt:
-                    task_info["enhanced_prompt"] = enhanced_prompt
-
-                if status == "completed":
-                    print(f"  ✓ 视频生成完成！")
-                    print(f"  视频URL: {video_url}")
-                    task_info["completed_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
-                    return task_info
-
-                print(f"  进行中... 已等待 {elapsed}/{max_wait_time} 秒")
-
-            except RuntimeError:
-                raise
-            except Exception as e:
-                print(f"  查询出错: {str(e)}")
-                # 继续等待
-
-        # 超时
-        print(f"  ⚠ 等待超时（{max_wait_time}秒），任务仍在进行中")
-        task_info["timeout"] = True
         return task_info
 
     def _generate_report(self, results):
@@ -271,12 +291,6 @@ class GrokBatchProcessor:
             f"失败: {results['failed']}",
         ]
 
-        if results['task_ids']:
-            lines.append(f"\n已创建的任务:")
-            for task_info in results['task_ids']:
-                status_icon = "✓" if task_info.get("status") == "completed" else "⏳"
-                lines.append(f"  {status_icon} {task_info['task_id']}: {task_info['prompt'][:30]}...")
-
         if results['errors']:
             lines.append("\n失败任务详情:")
             for error in results['errors']:
@@ -286,9 +300,9 @@ class GrokBatchProcessor:
 
 
 NODE_CLASS_MAPPINGS = {
-    "GrokBatchProcessor": GrokBatchProcessor,
+    "Veo3BatchProcessor": Veo3BatchProcessor,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "GrokBatchProcessor": "📦 Grok 批量处理器",
+    "Veo3BatchProcessor": "📦 Veo3 批量处理器",
 }
