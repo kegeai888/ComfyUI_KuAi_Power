@@ -83,7 +83,7 @@
     },
     {
       "id": 3,
-      "type": "Veo3BatchProcessor",
+      "type": "VeoCSVConcurrentProcessor",
       "pos": [1120, 100],
       "size": [470, 420],
       "flags": {},
@@ -98,14 +98,14 @@
       ],
       "outputs": [
         {
-          "name": "处理结果",
+          "name": "处理报告",
           "type": "STRING",
           "links": [4],
           "shape": 3,
           "slot_index": 0
         },
         {
-          "name": "输出目录",
+          "name": "视频保存目录",
           "type": "STRING",
           "links": [5],
           "shape": 3,
@@ -113,23 +113,24 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "Veo3BatchProcessor"
+        "Node name for S&R": "VeoCSVConcurrentProcessor"
       },
       "widgets_values": [
         "",
-        "./output/veo3_image2video_batch",
-        2.0,
-        "https://api.kegeai.top",
-        true,
-        true,
         "output/veo3",
+        10,
+        "veo3.1",
+        "16:9",
+        true,
+        false,
+        "https://api.kegeai.top",
         1200,
         15,
         180
       ],
       "color": "#223",
       "bgcolor": "#335",
-      "title": "📦 Veo3批量处理器（legacy）"
+      "title": "📦 Veo3 CSV 并发批量处理器"
     },
     {
       "id": 4,
@@ -218,11 +219,11 @@
   "config": {},
   "extra": {
     "workflow_info": {
-      "name": "Veo3 图生视频批量处理工作流（本地目录上传）（legacy）",
-      "description": "从 /root/ComfyUI/input/veo3/<demo目录> 读取图片（1-100 命名），批量上传后生成Veo3图生视频并自动下载到本地 output/veo3",
-      "version": "1.1.0",
+      "name": "Veo3 图生视频批量处理工作流（本地目录上传 + 并发）",
+      "description": "从 /root/ComfyUI/input/veo3/<demo目录> 读取图片（1-100 命名），批量上传后并发生成Veo3图生视频并自动下载到本地 output/veo3。支持10路并发，大幅提升处理效率。",
+      "version": "2.0.0",
       "author": "ComfyUI_KuAi_Power",
-      "category": "Video Generation/Batch/Local"
+      "category": "Video Generation/Batch/Local/Concurrent"
     }
   },
   "version": 0.4
