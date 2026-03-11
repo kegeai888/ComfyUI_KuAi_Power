@@ -191,8 +191,8 @@ class VeoCSVConcurrentProcessor:
             "download_timeout": "下载超时",
         }
 
-    RETURN_TYPES = ("STRING", "STRING")
-    RETURN_NAMES = ("处理报告", "视频保存目录")
+    RETURN_TYPES = ("STRING", "STRING", "STRING")
+    RETURN_NAMES = ("处理报告", "视频保存目录", "详细报告JSON")
     FUNCTION = "process"
     CATEGORY = "KuAi/Veo3"
 
@@ -270,7 +270,27 @@ class VeoCSVConcurrentProcessor:
         comfy_root = Path(__file__).parent.parent.parent.parent.parent
         abs_save_dir = str(comfy_root / save_dir)
 
-        return (report, abs_save_dir)
+        # 生成详细报告 JSON（供日志节点使用）
+        detailed_report = {
+            "total": total,
+            "success": len(success),
+            "failed": len(failed),
+            "tasks": [
+                {
+                    "idx": r["task_idx"],
+                    "row": r["row"],
+                    "status": r.get("status", "unknown"),
+                    "prompt": r.get("prompt", ""),
+                    "video_url": r.get("video_url", ""),
+                    "local_path": r.get("local_path", ""),
+                    "error": r.get("error", "")
+                }
+                for r in all_results
+            ]
+        }
+        detailed_json = json.dumps(detailed_report, ensure_ascii=False)
+
+        return (report, abs_save_dir, detailed_json)
 
 
 # ─────────────────────────────────────────────

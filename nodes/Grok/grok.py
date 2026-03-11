@@ -11,7 +11,6 @@ from ..Sora2.kuai_utils import (
     ensure_list_from_urls,
     extract_error_message_from_response,
     extract_task_failure_detail,
-    get_duration_for_grok_model,
 )
 
 
@@ -97,18 +96,11 @@ class GrokCreateVideo:
         actual_model = model.split(" (")[0] if " (" in model else model
         effective_model = (custom_model or "").strip() or actual_model
 
-        # 根据模型获取对应的 duration
-        # 如果使用了 custom_model，默认 duration 为 15 秒
-        if (custom_model or "").strip():
-            duration = 15
-        else:
-            duration = get_duration_for_grok_model(model)
-
-        # 根据 duration 调整 size（只有 15 秒模型支持 1080P）
+        # 根据 effective_model 判断是否支持 1080P（只有 15 秒模型支持）
         effective_size = size
-        if duration != 15 and size == "1080P":
+        if "15s" not in effective_model.lower() and size == "1080P":
             effective_size = "720P"
-            print(f"[ComfyUI_KuAi_Power] 警告：{duration}秒模型不支持 1080P，已自动降级到 720P")
+            print(f"[ComfyUI_KuAi_Power] 警告：{effective_model} 不支持 1080P，已自动降级到 720P")
 
         # 解析图片URL列表
         images = ensure_list_from_urls(image_urls) if image_urls else []
@@ -118,12 +110,12 @@ class GrokCreateVideo:
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
             "size": effective_size,
-            "duration": duration,
             "enhance_prompt": bool(enhance_prompt),
             "images": images
         }
 
         print(f"[ComfyUI_KuAi_Power] Grok 创建视频任务: {prompt[:50]}...")
+        print(f"[ComfyUI_KuAi_Power] 模型: {effective_model}, 宽高比: {aspect_ratio}, 分辨率: {effective_size}")
         if enhance_prompt:
             print(f"[ComfyUI_KuAi_Power] 提示词增强: 已启用")
 
@@ -473,30 +465,23 @@ class GrokImage2Video:
         actual_model = model.split(" (")[0] if " (" in model else model
         effective_model = (custom_model or "").strip() or actual_model
 
-        # 根据模型获取对应的 duration
-        # 如果使用了 custom_model，默认 duration 为 15 秒
-        if (custom_model or "").strip():
-            duration = 15
-        else:
-            duration = get_duration_for_grok_model(model)
-
-        # 根据 duration 调整 size（只有 15 秒模型支持 1080P）
+        # 根据 effective_model 判断是否支持 1080P（只有 15 秒模型支持）
         effective_size = size
-        if duration != 15 and size == "1080P":
+        if "15s" not in effective_model.lower() and size == "1080P":
             effective_size = "720P"
-            print(f"[ComfyUI_KuAi_Power] 警告：{duration}秒模型不支持 1080P，已自动降级到 720P")
+            print(f"[ComfyUI_KuAi_Power] 警告：{effective_model} 不支持 1080P，已自动降级到 720P")
 
         payload = {
             "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
             "size": effective_size,
-            "duration": duration,
             "enhance_prompt": bool(enhance_prompt),
             "images": images_list
         }
 
         print(f"[ComfyUI_KuAi_Power] Grok 图生视频任务: {prompt[:50]}... (图片数: {len(images_list)})")
+        print(f"[ComfyUI_KuAi_Power] 模型: {effective_model}, 宽高比: {aspect_ratio}, 分辨率: {effective_size}")
 
         # 4. 调用 API
         try:
@@ -612,7 +597,7 @@ class GrokImage2VideoAndWait:
     FUNCTION = "create_and_wait"
     CATEGORY = "KuAi/Grok"
 
-    def create_and_wait(self, images, prompt, model, aspect_ratio, size,
+    def create_and_wait(self, images, prompt, model, aspect_ratio, size, enhance_prompt=True,
                        api_key="", api_base="https://api.kegeai.top",
                        max_wait_time=1200, poll_interval=10, custom_model=""):
         """创建 Grok 图生视频并等待完成"""
@@ -624,6 +609,7 @@ class GrokImage2VideoAndWait:
             model=model,
             aspect_ratio=aspect_ratio,
             size=size,
+            enhance_prompt=enhance_prompt,
             api_key=api_key,
             api_base=api_base,
             custom_model=custom_model,
@@ -743,30 +729,23 @@ class GrokText2Video:
         actual_model = model.split(" (")[0] if " (" in model else model
         effective_model = (custom_model or "").strip() or actual_model
 
-        # 根据模型获取对应的 duration
-        # 如果使用了 custom_model，默认 duration 为 15 秒
-        if (custom_model or "").strip():
-            duration = 15
-        else:
-            duration = get_duration_for_grok_model(model)
-
-        # 根据 duration 调整 size（只有 15 秒模型支持 1080P）
+        # 根据 effective_model 判断是否支持 1080P（只有 15 秒模型支持）
         effective_size = size
-        if duration != 15 and size == "1080P":
+        if "15s" not in effective_model.lower() and size == "1080P":
             effective_size = "720P"
-            print(f"[ComfyUI_KuAi_Power] 警告：{duration}秒模型不支持 1080P，已自动降级到 720P")
+            print(f"[ComfyUI_KuAi_Power] 警告：{effective_model} 不支持 1080P，已自动降级到 720P")
 
         payload = {
             "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
             "size": effective_size,
-            "duration": duration,
             "enhance_prompt": bool(enhance_prompt),
             "images": []  # 文生视频不需要图片
         }
 
         print(f"[ComfyUI_KuAi_Power] Grok 文生视频任务: {prompt[:50]}...")
+        print(f"[ComfyUI_KuAi_Power] 模型: {effective_model}, 宽高比: {aspect_ratio}, 分辨率: {effective_size}")
 
         try:
             resp = requests.post(
@@ -871,7 +850,7 @@ class GrokText2VideoAndWait:
     FUNCTION = "create_and_wait"
     CATEGORY = "KuAi/Grok"
 
-    def create_and_wait(self, prompt, model, aspect_ratio, size,
+    def create_and_wait(self, prompt, model, aspect_ratio, size, enhance_prompt=True,
                        api_key="", api_base="https://api.kegeai.top",
                        max_wait_time=1200, poll_interval=10, custom_model=""):
         """创建 Grok 文生视频并等待完成"""
@@ -882,6 +861,7 @@ class GrokText2VideoAndWait:
             model=model,
             aspect_ratio=aspect_ratio,
             size=size,
+            enhance_prompt=enhance_prompt,
             api_key=api_key,
             api_base=api_base,
             custom_model=custom_model,

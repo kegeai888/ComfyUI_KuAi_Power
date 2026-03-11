@@ -11,6 +11,7 @@ from pathlib import Path
 from ..Sora2.kuai_utils import env_or
 from .grok import GrokCreateVideo as _GrokCreateVideo
 from .grok import GrokQueryVideo as _GrokQueryVideo
+from ..Utils.batch_state import BatchProcessState
 
 
 # ─────────────────────────────────────────────
@@ -41,7 +42,8 @@ def _process_one_task(task_idx: int, task: dict,
                       default_size: str, default_enhance: bool,
                       api_key: str, api_base: str,
                       save_dir: str, max_wait_time: int,
-                      poll_interval: int, download_timeout: int) -> dict:
+                      poll_interval: int, download_timeout: int,
+                      state_manager: BatchProcessState = None) -> dict:
     """
     单任务完整流程：提交 → 轮询 → 下载。
     GrokCreateVideo.create() 统一处理文/图生视频：
@@ -67,6 +69,10 @@ def _process_one_task(task_idx: int, task: dict,
 
         result["prompt"] = prompt
 
+        # 更新状态：pending
+        if state_manager:
+            state_manager.update_task(task_idx, "pending", prompt=prompt)
+
         # 1. 提交任务
         creator = _GrokCreateVideo()
         task_id, status, _ = creator.create(
@@ -77,6 +83,10 @@ def _process_one_task(task_idx: int, task: dict,
         result["task_id"] = task_id
         result["status"] = status
         print(f"[GrokCSVConcurrent] [{task_idx}] 已提交 task_id={task_id}")
+
+        # 更新状态：processing
+        if state_manager:
+            state_manager.update_task(task_idx, "processing", task_id=task_id)
 
         # 2. 轮询直到完成
         querier = _GrokQueryVideo()
@@ -91,14 +101,37 @@ def _process_one_task(task_idx: int, task: dict,
                 if status == "completed" and video_url:
                     result["video_url"] = video_url
                     print(f"[GrokCSVConcurrent] [{task_idx}] 完成，下载中...")
+
+                    # 更新状态：completed（下载前）
+                    if state_manager:
+                        state_manager.update_task(task_idx, "completed", video_url=video_url)
+
                     local = _download(video_url, save_dir, output_prefix, download_timeout)
                     result["local_path"] = local
+
+                    # 更新状态：completed（下载后）
+                    if state_manager:
+                        state_manager.update_task(task_idx, "completed", video_url=video_url, local_path=local)
+
                     return result
                 print(f"[GrokCSVConcurrent] [{task_idx}] 进行中 {elapsed}/{max_wait_time}s")
             except RuntimeError:
                 raise  # 任务失败，停止轮询
             except Exception as e:
                 print(f"[GrokCSVConcurrent] [{task_idx}] 查询出错（继续重试）: {e}")
+
+        raise RuntimeError(f"超时 ({max_wait_time}s)")
+
+    except Exception as e:
+        result["error"] = str(e)
+        result["status"] = "failed"
+        print(f"[GrokCSVConcurrent] [{task_idx}] ✗ {e}")
+
+        # 更新状态：failed
+        if state_manager:
+            state_manager.update_task(task_idx, "failed", error=str(e))
+
+        return result
 
         raise RuntimeError(f"超时 ({max_wait_time}s)")
 
@@ -175,8 +208,8 @@ class GrokCSVConcurrentProcessor:
             "download_timeout": "下载超时",
         }
 
-    RETURN_TYPES = ("STRING", "STRING")
-    RETURN_NAMES = ("处理报告", "视频保存目录")
+    RETURN_TYPES = ("STRING", "STRING", "STRING")
+    RETURN_NAMES = ("处理报告", "视频保存目录", "详细报告JSON")
     FUNCTION = "process"
     CATEGORY = "KuAi/Grok"
 
@@ -198,9 +231,15 @@ class GrokCSVConcurrentProcessor:
         total = len(tasks)
         all_results = []
 
+        # 初始化状态管理器
+        state_manager = BatchProcessState()
+        session_id = f"grok_{int(time.time())}"
+        state_manager.start_session(session_id, total)
+
         print(f"\n{'='*60}")
         print(f"[GrokCSVConcurrent] 共 {total} 个任务，每批 {batch_size} 路并发")
         print(f"[GrokCSVConcurrent] 保存目录: {save_dir}")
+        print(f"[GrokCSVConcurrent] 会话ID: {session_id}")
         print(f"{'='*60}\n")
 
         # 按 batch_size 分批并发处理
@@ -218,7 +257,8 @@ class GrokCSVConcurrentProcessor:
                         _process_one_task,
                         global_idx, task,
                         default_model, default_aspect_ratio, default_size, default_enhance_prompt,
-                        api_key, api_base, save_dir, max_wait_time, poll_interval, download_timeout
+                        api_key, api_base, save_dir, max_wait_time, poll_interval, download_timeout,
+                        state_manager  # 传递状态管理器
                     )
                     future_map[future] = global_idx
 
@@ -255,7 +295,27 @@ class GrokCSVConcurrentProcessor:
         comfy_root = Path(__file__).parent.parent.parent.parent.parent
         abs_save_dir = str(comfy_root / save_dir)
 
-        return (report, abs_save_dir)
+        # 生成详细报告 JSON（供日志节点使用）
+        detailed_report = {
+            "total": total,
+            "success": len(success),
+            "failed": len(failed),
+            "tasks": [
+                {
+                    "idx": r["task_idx"],
+                    "row": r["row"],
+                    "status": r.get("status", "unknown"),
+                    "prompt": r.get("prompt", ""),
+                    "video_url": r.get("video_url", ""),
+                    "local_path": r.get("local_path", ""),
+                    "error": r.get("error", "")
+                }
+                for r in all_results
+            ]
+        }
+        detailed_json = json.dumps(detailed_report, ensure_ascii=False)
+
+        return (report, abs_save_dir, detailed_json)
 
 
 # ─────────────────────────────────────────────
