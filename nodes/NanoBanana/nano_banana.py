@@ -60,7 +60,7 @@ class NanoBananaAIO:
                 "image_6": ("IMAGE", {"tooltip": "参考图6"}),
                 "aspect_ratio": (["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
                                 {"default": "1:1", "tooltip": "图像宽高比"}),
-                "image_size": (["1K", "2K", "4K"], {"default": "2K", "tooltip": "图像尺寸,只对gemini-3-pro-image-preview起作用"}),
+                "image_size": (["0.5K", "1K", "2K", "4K"], {"default": "2K", "tooltip": "图像尺寸,只对gemini-3-pro-image-preview起作用"}),
                 "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "tooltip": "生成温度"}),
                 "api_base": ("STRING", {"default": "https://api.kegeai.top", "tooltip": "API 端点地址"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API 密钥"}),
@@ -391,7 +391,7 @@ class NanoBananaMultiTurnChat:
                 "seed": ("INT", {"default": 0, "min": 0, "max": 2147483647, "tooltip": "随机种子值，0为随机（INT32范围）"}),
                 "aspect_ratio": (["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"],
                                 {"default": "1:1", "tooltip": "图像宽高比"}),
-                "image_size": (["1K", "2K", "4K"], {"default": "2K", "tooltip": "图像尺寸,只对gemini-3-pro-image-preview起作用"}),
+                "image_size": (["0.5K", "1K", "2K", "4K"], {"default": "2K", "tooltip": "图像尺寸,只对gemini-3-pro-image-preview起作用"}),
                 "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "tooltip": "生成温度"}),
             },
             "optional": {
