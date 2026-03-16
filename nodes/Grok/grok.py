@@ -377,17 +377,12 @@ class GrokCreateAndWait:
 
 
 class GrokImage2Video:
-    """Grok 图生视频创建节点（images 必需）"""
+    """Grok 图生视频创建节点（支持 0-3 张图片）"""
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "images": ("STRING", {
-                    "default": "",
-                    "multiline": True,
-                    "tooltip": "图片URL列表（多个用逗号、分号或换行分隔）- 必需"
-                }),
                 "prompt": ("STRING", {
                     "default": "",
                     "multiline": True,
@@ -405,7 +400,7 @@ class GrokImage2Video:
                     "default": "720P",
                     "tooltip": "视频分辨率（暂只支持720P）"
                 }),
-                                "enhance_prompt": ("BOOLEAN", {
+                "enhance_prompt": ("BOOLEAN", {
                     "default": True,
                     "tooltip": "自动将中文提示词优化并翻译为英文"
                 }),
@@ -415,6 +410,18 @@ class GrokImage2Video:
                 }),
             },
             "optional": {
+                "image_url_1": ("STRING", {
+                    "forceInput": True,
+                    "tooltip": "第1张参考图片URL（来自图片上传节点）"
+                }),
+                "image_url_2": ("STRING", {
+                    "forceInput": True,
+                    "tooltip": "第2张参考图片URL（可选）"
+                }),
+                "image_url_3": ("STRING", {
+                    "forceInput": True,
+                    "tooltip": "第3张参考图片URL（可选）"
+                }),
                 "api_base": ("STRING", {
                     "default": "https://api.kegeai.top",
                     "tooltip": "API端点地址"
@@ -429,13 +436,15 @@ class GrokImage2Video:
     @classmethod
     def INPUT_LABELS(cls):
         return {
-            "images": "图片列表",
             "prompt": "提示词",
             "model": "模型",
             "aspect_ratio": "宽高比",
             "size": "分辨率",
             "enhance_prompt": "提示词增强",
             "api_key": "API密钥",
+            "image_url_1": "参考图片1",
+            "image_url_2": "参考图片2",
+            "image_url_3": "参考图片3",
             "custom_model": "自定义模型",
             "api_base": "API地址"
         }
@@ -445,17 +454,25 @@ class GrokImage2Video:
     FUNCTION = "create"
     CATEGORY = "KuAi/Grok"
 
-    def create(self, images, prompt, model, aspect_ratio, size, enhance_prompt=True, api_key="", api_base="https://api.kegeai.top", custom_model=""):
+    def create(self, prompt, model, aspect_ratio, size, enhance_prompt=True, api_key="",
+               image_url_1="", image_url_2="", image_url_3="",
+               api_base="https://api.kegeai.top", custom_model=""):
         """创建 Grok 图生视频任务"""
         # 1. 解析 API key
         api_key = env_or(api_key, "KUAI_API_KEY")
         if not api_key:
             raise RuntimeError("API Key 未配置，请在节点参数或环境变量中设置 KUAI_API_KEY")
 
-        # 2. 解析图片列表（必需）
-        images_list = ensure_list_from_urls(images)
-        if not images_list:
-            raise RuntimeError("请至少提供一个图片 URL")
+        # 2. 收集图片 URL（过滤空字符串）
+        images_list = []
+        for url in [image_url_1, image_url_2, image_url_3]:
+            url_stripped = (url or "").strip()
+            if url_stripped:
+                images_list.append(url_stripped)
+
+        # 验证图片数量（最多3张）
+        if len(images_list) > 3:
+            raise RuntimeError(f"最多支持3张参考图片，当前提供了 {len(images_list)} 张")
 
         # 3. 构建请求
         api_base = api_base.rstrip("/")
@@ -480,7 +497,11 @@ class GrokImage2Video:
             "images": images_list
         }
 
-        print(f"[ComfyUI_KuAi_Power] Grok 图生视频任务: {prompt[:50]}... (图片数: {len(images_list)})")
+        # 日志输出
+        if images_list:
+            print(f"[ComfyUI_KuAi_Power] Grok 图生视频任务: {prompt[:50]}... (图片数: {len(images_list)})")
+        else:
+            print(f"[ComfyUI_KuAi_Power] Grok 文生视频任务: {prompt[:50]}...")
         print(f"[ComfyUI_KuAi_Power] 模型: {effective_model}, 宽高比: {aspect_ratio}, 分辨率: {effective_size}")
 
         # 4. 调用 API
@@ -493,7 +514,7 @@ class GrokImage2Video:
             )
             if resp.status_code >= 400:
                 detail = extract_error_message_from_response(resp)
-                raise RuntimeError(f"Grok 图生视频创建失败: {detail}")
+                raise RuntimeError(f"Grok 视频创建失败: {detail}")
 
             result = resp.json()
             task_id = result.get("id", "")
@@ -504,28 +525,23 @@ class GrokImage2Video:
             if not task_id:
                 raise RuntimeError(f"创建响应缺少任务 ID")
 
-            print(f"[ComfyUI_KuAi_Power] Grok 图生视频任务已创建: {task_id}, 状态: {status}")
+            print(f"[ComfyUI_KuAi_Power] Grok 视频任务已创建: {task_id}, 状态: {status}")
 
             return (task_id, status, enhanced_prompt, status_update_time)
 
         except RuntimeError:
             raise
         except Exception as e:
-            raise RuntimeError(f"Grok 图生视频创建失败: {str(e)}")
+            raise RuntimeError(f"Grok 视频创建失败: {str(e)}")
 
 
 class GrokImage2VideoAndWait:
-    """Grok 图生视频一键生成节点（images 必需）"""
+    """Grok 图生视频一键生成节点（支持 0-3 张图片）"""
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "images": ("STRING", {
-                    "default": "",
-                    "multiline": True,
-                    "tooltip": "图片URL列表（多个用逗号、分号或换行分隔）- 必需"
-                }),
                 "prompt": ("STRING", {
                     "default": "",
                     "multiline": True,
@@ -543,7 +559,7 @@ class GrokImage2VideoAndWait:
                     "default": "720P",
                     "tooltip": "视频分辨率（暂只支持720P）"
                 }),
-                                "enhance_prompt": ("BOOLEAN", {
+                "enhance_prompt": ("BOOLEAN", {
                     "default": True,
                     "tooltip": "自动将中文提示词优化并翻译为英文"
                 }),
@@ -553,6 +569,18 @@ class GrokImage2VideoAndWait:
                 }),
             },
             "optional": {
+                "image_url_1": ("STRING", {
+                    "forceInput": True,
+                    "tooltip": "第1张参考图片URL（来自图片上传节点）"
+                }),
+                "image_url_2": ("STRING", {
+                    "forceInput": True,
+                    "tooltip": "第2张参考图片URL（可选）"
+                }),
+                "image_url_3": ("STRING", {
+                    "forceInput": True,
+                    "tooltip": "第3张参考图片URL（可选）"
+                }),
                 "api_base": ("STRING", {
                     "default": "https://api.kegeai.top",
                     "tooltip": "API端点地址"
@@ -579,13 +607,15 @@ class GrokImage2VideoAndWait:
     @classmethod
     def INPUT_LABELS(cls):
         return {
-            "images": "图片列表",
             "prompt": "提示词",
             "model": "模型",
             "aspect_ratio": "宽高比",
             "size": "分辨率",
             "enhance_prompt": "提示词增强",
             "api_key": "API密钥",
+            "image_url_1": "参考图片1",
+            "image_url_2": "参考图片2",
+            "image_url_3": "参考图片3",
             "api_base": "API地址",
             "custom_model": "自定义模型",
             "max_wait_time": "最大等待时间",
@@ -597,20 +627,23 @@ class GrokImage2VideoAndWait:
     FUNCTION = "create_and_wait"
     CATEGORY = "KuAi/Grok"
 
-    def create_and_wait(self, images, prompt, model, aspect_ratio, size, enhance_prompt=True,
-                       api_key="", api_base="https://api.kegeai.top",
+    def create_and_wait(self, prompt, model, aspect_ratio, size, enhance_prompt=True,
+                       api_key="", image_url_1="", image_url_2="", image_url_3="",
+                       api_base="https://api.kegeai.top",
                        max_wait_time=1200, poll_interval=10, custom_model=""):
         """创建 Grok 图生视频并等待完成"""
         # 1. 创建任务
         creator = GrokImage2Video()
         task_id, status, enhanced_prompt, _ = creator.create(
-            images=images,
             prompt=prompt,
             model=model,
             aspect_ratio=aspect_ratio,
             size=size,
             enhance_prompt=enhance_prompt,
             api_key=api_key,
+            image_url_1=image_url_1,
+            image_url_2=image_url_2,
+            image_url_3=image_url_3,
             api_base=api_base,
             custom_model=custom_model,
         )
@@ -622,7 +655,7 @@ class GrokImage2VideoAndWait:
             return (task_id, status, video_url, enhanced_prompt)
 
         # 3. 轮询等待完成
-        print(f"[ComfyUI_KuAi_Power] Grok 等待图生视频完成，最多等待 {max_wait_time} 秒...")
+        print(f"[ComfyUI_KuAi_Power] Grok 等待视频生成完成，最多等待 {max_wait_time} 秒...")
 
         querier = GrokQueryVideo()
         elapsed = 0
@@ -635,7 +668,7 @@ class GrokImage2VideoAndWait:
                 task_id, status, video_url, enhanced_prompt, _ = querier.query(task_id, api_key, api_base)
 
                 if status == "completed":
-                    print(f"[ComfyUI_KuAi_Power] Grok 图生视频完成！")
+                    print(f"[ComfyUI_KuAi_Power] Grok 视频生成完成！")
                     return (task_id, status, video_url, enhanced_prompt)
 
                 print(f"[ComfyUI_KuAi_Power] Grok 任务进行中... 已等待 {elapsed}/{max_wait_time} 秒")
@@ -648,7 +681,7 @@ class GrokImage2VideoAndWait:
 
         # 4. 超时
         raise RuntimeError(
-            f"Grok 图生视频超时（等待了 {max_wait_time} 秒）。"
+            f"Grok 视频生成超时（等待了 {max_wait_time} 秒）。"
             f"任务ID: {task_id}，可使用查询节点继续检查状态。"
         )
 
