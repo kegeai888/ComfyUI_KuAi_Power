@@ -89,7 +89,7 @@ def test_parameter_structure():
 
         resolution_options = required["resolution"][0]
         resolution_meta = required["resolution"][1]
-        assert resolution_options == ["720P", "1080P"], f"resolution 选项异常: {resolution_options}"
+        assert resolution_options == ["480P", "720P", "1080P"], f"resolution 选项异常: {resolution_options}"
         assert resolution_meta.get("default") == "720P", "resolution 默认值异常"
         expected_labels = {
             "model", "custom_model", "prompt", "negative_prompt", "img_url", "audio_url",

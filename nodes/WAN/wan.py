@@ -49,7 +49,7 @@ class WanCreateAndWait:
                     "default": "none",
                     "tooltip": "视频特效模板（无模板可填 none）"
                 }),
-                "resolution": (["720P", "1080P"], {
+                "resolution": (["480P", "720P", "1080P"], {
                     "default": "720P",
                     "tooltip": "视频分辨率"
                 }),
