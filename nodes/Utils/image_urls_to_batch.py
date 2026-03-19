@@ -19,22 +19,6 @@ class ImageURLsToGrokBatchTasks:
                     "multiline": True,
                     "tooltip": "提示词模板（每个图片使用相同的提示词）"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
-                    "default": "grok-video-3 (6秒)",
-                    "tooltip": "Grok 模型选择"
-                }),
-                "aspect_ratio": (["2:3", "3:2", "1:1"], {
-                    "default": "3:2",
-                    "tooltip": "视频宽高比"
-                }),
-                "size": (["720P", "1080P"], {
-                    "default": "1080P",
-                    "tooltip": "视频分辨率"
-                }),
-                "enhance_prompt": ("BOOLEAN", {
-                    "default": True,
-                    "tooltip": "是否启用提示词增强"
-                }),
             },
             "optional": {
                 "output_prefix": ("STRING", {
@@ -49,10 +33,6 @@ class ImageURLsToGrokBatchTasks:
         return {
             "image_urls_json": "图片URL列表",
             "prompt_template": "提示词模板",
-            "model": "模型",
-            "aspect_ratio": "宽高比",
-            "size": "分辨率",
-            "enhance_prompt": "提示词增强",
             "output_prefix": "输出前缀",
         }
 
@@ -61,8 +41,7 @@ class ImageURLsToGrokBatchTasks:
     FUNCTION = "convert"
     CATEGORY = "KuAi/Utils"
 
-    def convert(self, image_urls_json, prompt_template, model, aspect_ratio, size,
-               enhance_prompt, output_prefix="video"):
+    def convert(self, image_urls_json, prompt_template, output_prefix="video"):
         """将URL列表转换为Grok批量任务"""
 
         try:
@@ -84,10 +63,6 @@ class ImageURLsToGrokBatchTasks:
                     "_row_number": idx + 1,
                     "task_type": "image2video",
                     "prompt": prompt_template,
-                    "model": model,
-                    "aspect_ratio": aspect_ratio,
-                    "size": size,
-                    "enhance_prompt": "true" if enhance_prompt else "false",
                     "image_urls": url,
                     "output_prefix": f"{output_prefix}_{idx}"
                 }
@@ -120,26 +95,6 @@ class ImageURLsToVeo3BatchTasks:
                     "multiline": True,
                     "tooltip": "提示词模板（每个图片使用相同的提示词）"
                 }),
-                "model": (["veo3.1", "veo3.1-pro", "veo3.1-pro-upsample"], {
-                    "default": "veo3.1",
-                    "tooltip": "Veo3 模型选择"
-                }),
-                "duration": ([6, 10], {
-                    "default": 6,
-                    "tooltip": "视频时长（秒）"
-                }),
-                "aspect_ratio": (["16:9", "9:16", "1:1"], {
-                    "default": "16:9",
-                    "tooltip": "视频宽高比"
-                }),
-                "enhance_prompt": ("BOOLEAN", {
-                    "default": True,
-                    "tooltip": "是否启用提示词增强"
-                }),
-                "enable_upsample": ("BOOLEAN", {
-                    "default": False,
-                    "tooltip": "是否启用超分辨率（仅pro模型支持）"
-                }),
             },
             "optional": {
                 "output_prefix": ("STRING", {
@@ -154,11 +109,6 @@ class ImageURLsToVeo3BatchTasks:
         return {
             "image_urls_json": "图片URL列表",
             "prompt_template": "提示词模板",
-            "model": "模型",
-            "duration": "时长",
-            "aspect_ratio": "宽高比",
-            "enhance_prompt": "提示词增强",
-            "enable_upsample": "启用超分",
             "output_prefix": "输出前缀",
         }
 
@@ -167,8 +117,7 @@ class ImageURLsToVeo3BatchTasks:
     FUNCTION = "convert"
     CATEGORY = "KuAi/Utils"
 
-    def convert(self, image_urls_json, prompt_template, model, duration, aspect_ratio,
-               enhance_prompt, enable_upsample, output_prefix="video"):
+    def convert(self, image_urls_json, prompt_template, output_prefix="video"):
         """将URL列表转换为Veo3批量任务"""
 
         try:
@@ -190,11 +139,6 @@ class ImageURLsToVeo3BatchTasks:
                     "_row_number": idx + 1,
                     "task_type": "image2video",
                     "prompt": prompt_template,
-                    "model": model,
-                    "duration": duration,
-                    "aspect_ratio": aspect_ratio,
-                    "enhance_prompt": "true" if enhance_prompt else "false",
-                    "enable_upsample": "true" if enable_upsample else "false",
                     "image_urls": url,
                     "output_prefix": f"{output_prefix}_{idx}"
                 }

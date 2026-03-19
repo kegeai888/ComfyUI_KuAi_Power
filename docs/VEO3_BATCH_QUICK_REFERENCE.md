@@ -46,17 +46,19 @@ image2video,"提示词",veo3.1,16:9,true,true,https://example.com/img.jpg,video_
 ## ⚙️ 推荐配置
 
 ```
-wait_for_completion: false  # 快速提交
-delay_between_tasks: 2.0    # 任务间隔
-enhance_prompt: true        # 提示词增强
-enable_upsample: true       # 启用超分
+batch_size: 5-10               # 推荐并发批次
+poll_interval: 15              # 轮询间隔
+default_enhance_prompt: true   # 默认提示词增强
+default_enable_upsample: true  # 默认启用超分
 ```
 
 ## 📁 输出文件
 
 ```
-./output/veo3_batch/
-└── tasks.json  # 包含所有 task_id
+output/veo3/
+├── video_001_a1b2c3d4.mp4
+├── video_002_e5f6g7h8.mp4
+└── ...
 ```
 
 ## 🔍 查询任务
@@ -76,7 +78,7 @@ enable_upsample: true       # 启用超分
 |------|---------|
 | CSV 读取失败 | 检查 UTF-8 编码 |
 | API Key 错误 | 设置环境变量或节点参数 |
-| 任务提交慢 | 设置 `wait_for_completion: false` |
+| 任务提交慢 | 降低 `batch_size` 或使用 `veo3-fast` 模型 |
 | 生成速度慢 | 使用 `veo3-fast` 模型 |
 
 ## 📚 完整文档

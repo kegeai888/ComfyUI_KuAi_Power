@@ -10,7 +10,14 @@ class BatchProcessMonitor:
     def INPUT_TYPES(cls):
         return {
             "optional": {
-                "max_tasks": ("INT", {
+                "poll_interval": ("FLOAT", {
+                    "default": 2.0,
+                    "min": 0.5,
+                    "max": 10.0,
+                    "step": 0.5,
+                    "tooltip": "轮询间隔（秒）"
+                }),
+                "max_display_tasks": ("INT", {
                     "default": 20,
                     "min": 5,
                     "max": 100,
@@ -22,7 +29,8 @@ class BatchProcessMonitor:
     @classmethod
     def INPUT_LABELS(cls):
         return {
-            "max_tasks": "最多显示任务数",
+            "poll_interval": "轮询间隔",
+            "max_display_tasks": "最多显示任务数",
         }
 
     RETURN_TYPES = ("STRING",)
@@ -31,7 +39,7 @@ class BatchProcessMonitor:
     CATEGORY = "KuAi/Utils"
     OUTPUT_NODE = True  # 标记为输出节点，可以在 UI 中显示
 
-    def monitor(self, max_tasks=20):
+    def monitor(self, poll_interval=2.0, max_display_tasks=20):
         """监控批量处理状态"""
         try:
             # 获取状态管理器
@@ -41,17 +49,18 @@ class BatchProcessMonitor:
             state = state_manager.get_state()
 
             # 格式化日志
-            log = format_realtime_log(state, max_tasks=max_tasks)
+            log = format_realtime_log(state, max_tasks=max_display_tasks)
 
             # 输出到控制台
             print(log)
 
-            return (log,)
+            # 返回 UI 显示格式（OUTPUT_NODE 标准格式）
+            return {"ui": {"string": [log], "text": [log]}, "result": (log,)}
 
         except Exception as e:
             error_msg = f"❌ 监控失败: {str(e)}"
             print(error_msg)
-            return (error_msg,)
+            return {"ui": {"string": [error_msg], "text": [error_msg]}, "result": (error_msg,)}
 
 
 NODE_CLASS_MAPPINGS = {

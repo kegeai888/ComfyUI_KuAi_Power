@@ -12,6 +12,7 @@ from ..Sora2.kuai_utils import env_or
 from .veo3 import VeoText2Video as _VeoText2Video
 from .veo3 import VeoImage2Video as _VeoImage2Video
 from .veo3 import VeoQueryTask as _VeoQueryTask
+from ..Utils.batch_state import BatchProcessState
 
 
 # ─────────────────────────────────────────────
@@ -42,7 +43,8 @@ def _process_one_task(task_idx: int, task: dict,
                       default_enhance: bool, default_upsample: bool,
                       api_key: str, api_base: str,
                       save_dir: str, max_wait_time: int,
-                      poll_interval: int, download_timeout: int) -> dict:
+                      poll_interval: int, download_timeout: int,
+                      state_manager: BatchProcessState = None) -> dict:
     """
     单任务完整流程：提交 → 轮询 → 下载。
     task_type="image2video" + image_urls 非空 → VeoImage2Video
@@ -61,13 +63,18 @@ def _process_one_task(task_idx: int, task: dict,
         aspect_ratio  = task.get("aspect_ratio", default_aspect_ratio).strip() or default_aspect_ratio
         image_urls    = task.get("image_urls", "").strip()
         output_prefix = task.get("output_prefix", f"veo3_{task_idx}").strip() or f"veo3_{task_idx}"
-        enhance_raw   = task.get("enhance_prompt", "true")
-        enhance       = str(enhance_raw).strip().lower() in ("true", "1", "yes") if enhance_raw else default_enhance
-        upsample_raw  = task.get("enable_upsample", "true")
-        upsample      = str(upsample_raw).strip().lower() in ("true", "1", "yes") if upsample_raw else default_upsample
+        enhance_raw   = task.get("enhance_prompt")
+        enhance       = default_enhance if enhance_raw is None or str(enhance_raw).strip() == "" else str(enhance_raw).strip().lower() in ("true", "1", "yes")
+        upsample_raw  = task.get("enable_upsample")
+        upsample      = default_upsample if upsample_raw is None or str(upsample_raw).strip() == "" else str(upsample_raw).strip().lower() in ("true", "1", "yes")
         custom_model  = task.get("custom_model", "").strip()
 
         result["prompt"] = prompt
+
+        # 更新状态：开始处理
+        if state_manager:
+            state_manager.update_task(task_idx, "processing", prompt=prompt)
+            state_manager.add_log(task_idx, "INFO", f"开始处理任务 (model={model})")
 
         # 1. 提交任务
         # create() 返回 (task_id, status, status_update_time)
@@ -91,6 +98,10 @@ def _process_one_task(task_idx: int, task: dict,
         result["status"] = status
         print(f"[VeoCSVConcurrent] [{task_idx}] 已提交 task_id={task_id}")
 
+        if state_manager:
+            state_manager.update_task(task_idx, "processing", task_id=task_id)
+            state_manager.add_log(task_idx, "INFO", f"任务已提交 task_id={task_id}")
+
         # 2. 轮询直到完成
         # VeoQueryTask.query(wait=False) → 单次查询，返回 (status, video_url, enhanced_prompt, raw_json)
         querier = _VeoQueryTask()
@@ -106,8 +117,18 @@ def _process_one_task(task_idx: int, task: dict,
                 if status == "completed" and video_url:
                     result["video_url"] = video_url
                     print(f"[VeoCSVConcurrent] [{task_idx}] 完成，下载中...")
+
+                    if state_manager:
+                        state_manager.add_log(task_idx, "INFO", f"生成完成，开始下载视频")
+
                     local = _download(video_url, save_dir, output_prefix, download_timeout)
                     result["local_path"] = local
+
+                    if state_manager:
+                        state_manager.update_task(task_idx, "completed",
+                                                video_url=video_url, local_path=local)
+                        state_manager.add_log(task_idx, "INFO", f"下载完成: {local}")
+
                     return result
                 print(f"[VeoCSVConcurrent] [{task_idx}] 进行中 {elapsed}/{max_wait_time}s")
             except RuntimeError:
@@ -121,6 +142,11 @@ def _process_one_task(task_idx: int, task: dict,
         result["error"] = str(e)
         result["status"] = "failed"
         print(f"[VeoCSVConcurrent] [{task_idx}] ✗ {e}")
+
+        if state_manager:
+            state_manager.update_task(task_idx, "failed", error=str(e))
+            state_manager.add_log(task_idx, "ERROR", f"任务失败: {str(e)}")
+
         return result
 
 
@@ -159,8 +185,17 @@ class VeoCSVConcurrentProcessor:
                     "tooltip": "每批并发任务数（建议 5-10）"
                 }),
                 "default_model": ([
-                    "veo_3_1-fast", "veo3.1", "veo3", "veo3-fast", "veo3-pro",
-                    "veo3.1-4k", "veo3.1-pro-4k",
+                    "veo_3_1-fast",
+                    "veo_3_1-fast-4K",
+                    "veo3.1",
+                    "veo3",
+                    "veo3-fast",
+                    "veo3-pro",
+                    "veo3.1-components",
+                    "veo2-fast-components",
+                    "veo3.1-fast-components",
+                    "veo3.1-4k",
+                    "veo3.1-pro-4k",
                 ], {"default": "veo_3_1-fast", "tooltip": "CSV 中未指定 model 时的默认值"}),
                 "default_aspect_ratio": (["9:16", "16:9"],
                                          {"default": "9:16", "tooltip": "CSV 中未指定时的默认宽高比"}),
@@ -214,9 +249,15 @@ class VeoCSVConcurrentProcessor:
         total = len(tasks)
         all_results = []
 
+        # 初始化状态管理器
+        state_manager = BatchProcessState()
+        session_id = f"veo3_csv_{int(time.time())}"
+        state_manager.start_session(session_id, total)
+
         print(f"\n{'='*60}")
         print(f"[VeoCSVConcurrent] 共 {total} 个任务，每批 {batch_size} 路并发")
         print(f"[VeoCSVConcurrent] 保存目录: {save_dir}")
+        print(f"[VeoCSVConcurrent] 会话ID: {session_id}")
         print(f"{'='*60}\n")
 
         # 按 batch_size 分批并发处理
@@ -236,7 +277,8 @@ class VeoCSVConcurrentProcessor:
                         default_model, default_aspect_ratio,
                         default_enhance_prompt, default_enable_upsample,
                         api_key, api_base, save_dir, max_wait_time,
-                        poll_interval, download_timeout
+                        poll_interval, download_timeout,
+                        state_manager  # 传递状态管理器
                     )
                     future_map[future] = global_idx
 
@@ -302,5 +344,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "VeoCSVConcurrentProcessor": "📦 Veo3 CSV 并发批量处理器（legacy）",
+    "VeoCSVConcurrentProcessor": "📦 Veo3 CSV 并发批量处理器",
 }

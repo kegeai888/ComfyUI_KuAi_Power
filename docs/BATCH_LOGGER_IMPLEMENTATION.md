@@ -138,8 +138,8 @@
 
 ```
 并发处理器
-  ├─ 输出1: 处理报告 (STRING) → ShowText (legacy)
-  ├─ 输出2: 视频保存目录 (STRING) → ShowText (legacy)
+  ├─ 输出1: 处理报告 (STRING) → ShowText
+  ├─ 输出2: 视频保存目录 (STRING) → ShowText
   └─ 输出3: 详细报告JSON (STRING) → BatchProcessLogger
                                         └─ 输出: 格式化日志 (STRING)
 ```

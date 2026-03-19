@@ -11,7 +11,7 @@
       "order": 0,
       "mode": 0,
       "outputs": [
-        {"name": "图片URL列表", "type": "STRING", "links": [1]},
+        {"name": "图片URL列表", "type": "STRING", "links": null},
         {"name": "上传详情", "type": "STRING", "links": null},
         {"name": "成功数量", "type": "INT", "links": null}
       ],
@@ -103,7 +103,6 @@
     }
   ],
   "links": [
-    [1, 1, 0, null, "STRING"],
     [2, 2, 0, 3, 0, "STRING"],
     [3, 3, 0, 4, 0, "STRING"],
     [4, 3, 1, 5, 0, "STRING"]
@@ -111,7 +110,7 @@
   "groups": [],
   "config": {},
   "extra": {
-    "title": "Grok CSV 并发图生视频工作流（legacy）"
+    "title": "Grok CSV 并发图生视频工作流"
   },
   "version": 0.4
 }

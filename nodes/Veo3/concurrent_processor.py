@@ -144,8 +144,8 @@ class VeoText2Video10Concurrent:
             "required": required,
             "optional": {
                 "model": ([
-                    "veo3.1", "veo3", "veo3-fast", "veo3-pro",
-                    "veo_3_1-fast", "veo3.1-4k", "veo3.1-pro-4k",
+                    "veo_3_1-fast", "veo3.1", "veo3", "veo3-fast", "veo3-pro",
+                    "veo3.1-4k", "veo3.1-pro-4k",
                 ], {"default": "veo_3_1-fast"}),
                 "aspect_ratio": (["16:9", "9:16"], {"default": "9:16"}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
@@ -247,8 +247,8 @@ class VeoImage2Video10Concurrent:
             "required": required,
             "optional": {
                 "model": ([
-                    "veo3.1", "veo3", "veo3-fast", "veo3-pro",
-                    "veo_3_1-fast", "veo3.1-4k", "veo3.1-pro-4k",
+                    "veo_3_1-fast", "veo3.1", "veo3", "veo3-fast", "veo3-pro",
+                    "veo3.1-4k", "veo3.1-pro-4k",
                 ], {"default": "veo_3_1-fast"}),
                 "aspect_ratio": (["16:9", "9:16"], {"default": "9:16"}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),

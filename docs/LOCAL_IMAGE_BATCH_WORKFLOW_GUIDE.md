@@ -57,7 +57,7 @@
     ↓
 🔄 图片URL转Grok批量任务
     ↓
-📦 Grok批量处理器
+📦 Grok CSV 并发批量处理器
     ↓
 📊 处理结果显示
 ```
@@ -95,17 +95,15 @@ workflows/grok_local_image2video_batch_workflow.json
   ```
   将这张图片转换为视频，添加自然的镜头运动和电影级灯光效果
   ```
-- **模型**: `grok-video-3 (6秒)` / `grok-video-3-10s (10秒)` / `grok-video-3-15s (15秒)`
-- **宽高比**: `3:2`（横屏）/ `2:3`（竖屏）/ `1:1`（方形）
-- **分辨率**: `1080P` / `720P`
-- **提示词增强**: `true`（推荐）
 - **输出前缀**: `grok_local`（自定义）
 
-**📦 Grok批量处理器**
-- **API密钥**: 留空使用环境变量 `KUAI_API_KEY`
-- **输出目录**: `./output/grok_local_batch`
-- **任务间延迟**: `2.0` 秒
-- **等待完成**: `false`（快速提交模式）
+**📦 Grok CSV 并发批量处理器**
+- **默认模型**: `grok-video-3 (6秒)`
+- **默认宽高比**: `3:2`
+- **默认分辨率**: `1080P`
+- **默认提示词增强**: `true`（推荐）
+- **并发批次大小**: `10`（建议 5-10）
+- **视频保存目录**: `output/grok`
 
 #### 4. 执行工作流
 
@@ -129,7 +127,7 @@ workflows/grok_local_image2video_batch_workflow.json
     ↓
 🔄 图片URL转Veo3批量任务
     ↓
-📦 Veo3批量处理器
+📦 Veo3 CSV 并发批量处理器
     ↓
 📊 处理结果显示
 ```
@@ -161,15 +159,18 @@ workflows/veo3_local_image2video_batch_workflow.json
 
 **🔄 图片URL转Veo3批量任务**
 - **提示词模板**: 所有图片使用相同的提示词
-- **模型**: `veo3.1` / `veo3.1-pro` / `veo3.1-pro-upsample`
-- **时长**: `6` / `10` 秒
-- **宽高比**: `16:9` / `9:16` / `1:1`
-- **提示词增强**: `true`（推荐）
-- **启用超分**: `false`（仅 pro 模型支持）
 - **输出前缀**: `veo3_local`
 
-**📦 Veo3批量处理器**
-- 配置同 Grok
+**📦 Veo3 CSV 并发批量处理器**
+- **API密钥**: 留空使用环境变量 `KUAI_API_KEY`
+- **视频保存目录**: `output/veo3_local_batch`
+- **并发批次大小**: `10`（建议 5-10）
+- **默认模型**: `veo_3_1-fast`
+- **默认宽高比**: `16:9`
+- **默认提示词增强**: `true`（推荐）
+- **默认超分**: `false`（按需开启）
+- **最大等待时间**: `1200` 秒
+- **轮询间隔**: `15` 秒
 
 #### 4. 执行和查看结果
 
@@ -219,15 +220,15 @@ workflows/veo3_local_image2video_batch_workflow.json
 
 ### 3. 批量处理策略
 
-**快速提交模式**（推荐）
-- `wait_for_completion`: `false`
-- `delay_between_tasks`: `2.0` 秒
-- 快速提交所有任务，稍后查询结果
+**并发处理模式**（推荐）
+- `batch_size`: `5-10`
+- `poll_interval`: `15` 秒
+- 按批次并发提交并自动下载完成视频
 
-**等待完成模式**（适合小批量）
-- `wait_for_completion`: `true`
-- `max_wait_time`: `1200` 秒
-- 等待每个任务完成后再提交下一个
+**稳定保守模式**
+- `batch_size`: `2-3`
+- `poll_interval`: `20-30` 秒
+- 适合 API 配额紧张或需要降低查询频率的场景
 
 ### 4. 图片质量控制
 

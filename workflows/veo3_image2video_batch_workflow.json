@@ -39,7 +39,7 @@
       ],
       "color": "#232",
       "bgcolor": "#353",
-      "title": "📤 批量上传本地图片（legacy）"
+      "title": "📤 批量上传本地图片"
     },
     {
       "id": 2,
@@ -70,16 +70,11 @@
       },
       "widgets_values": [
         "将这张图片转换为视频，添加自然的镜头运动和电影级灯光效果",
-        "veo3.1",
-        6,
-        "16:9",
-        true,
-        false,
         "veo3_local"
       ],
       "color": "#322",
       "bgcolor": "#533",
-      "title": "🔄 图片URL转Veo3批量任务（legacy）"
+      "title": "🔄 图片URL转Veo3批量任务"
     },
     {
       "id": 3,
@@ -155,7 +150,7 @@
       ],
       "color": "#232",
       "bgcolor": "#353",
-      "title": "📊 处理结果显示（legacy）"
+      "title": "📊 处理结果显示"
     },
     {
       "id": 5,
@@ -180,7 +175,7 @@
       ],
       "color": "#232",
       "bgcolor": "#353",
-      "title": "📋 上传详情显示（legacy）"
+      "title": "📋 上传详情显示"
     },
     {
       "id": 6,
@@ -205,7 +200,7 @@
       ],
       "color": "#223",
       "bgcolor": "#335",
-      "title": "📁 输出目录显示（legacy）"
+      "title": "📁 输出目录显示"
     }
   ],
   "links": [

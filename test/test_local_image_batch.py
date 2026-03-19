@@ -158,10 +158,6 @@ def test_node_functionality():
         result = grok_node.convert(
             image_urls_json=test_urls_json,
             prompt_template="测试提示词",
-            model="grok-video-3 (6秒)",
-            aspect_ratio="3:2",
-            size="1080P",
-            enhance_prompt=True,
             output_prefix="test"
         )
 
@@ -180,11 +176,6 @@ def test_node_functionality():
         result = veo3_node.convert(
             image_urls_json=test_urls_json,
             prompt_template="测试提示词",
-            model="veo3.1",
-            duration=6,
-            aspect_ratio="16:9",
-            enhance_prompt=True,
-            enable_upsample=False,
             output_prefix="test"
         )
 

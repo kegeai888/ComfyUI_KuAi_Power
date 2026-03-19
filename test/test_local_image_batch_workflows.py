@@ -37,14 +37,38 @@ def _assert_local_image_batch_workflow(data, platform: str, task_converter: str,
     converter = _get_node_by_type(nodes, task_converter)
     assert converter is not None, f"缺少 {task_converter} 节点"
 
-    processor = _get_node_by_type(nodes, f"{platform.capitalize()}BatchProcessor" if platform == "veo3" else "GrokBatchProcessor")
-    assert processor is not None, "缺少批量处理节点"
+    if platform == "veo3":
+        processor = _get_node_by_type(nodes, "VeoCSVConcurrentProcessor")
+        assert processor is not None, "缺少 VeoCSVConcurrentProcessor 节点"
 
-    values = processor.get("widgets_values", [])
-    assert len(values) >= 10, "批量处理节点参数数量不正确"
-    assert values[4] is True, "wait_for_completion 必须为 true"
-    assert values[5] is True, "auto_download 必须为 true"
-    assert values[6] == save_dir, f"video_save_dir 必须为 {save_dir}"
+        values = processor.get("widgets_values", [])
+        assert len(values) == 11, "VeoCSVConcurrentProcessor 参数数量不正确"
+        assert values[1] == save_dir, f"save_dir 必须为 {save_dir}"
+
+        processor_id = processor["id"]
+        out0 = any(l[1] == processor_id and l[2] == 0 for l in links)
+        out1 = any(l[1] == processor_id and l[2] == 1 for l in links)
+        assert out0, "处理结果输出未连接"
+        assert out1, "输出目录输出未连接"
+        return
+
+    # Grok: 支持 GrokBatchProcessor (legacy) 和 GrokCSVConcurrentProcessor (当前)
+    processor = _get_node_by_type(nodes, "GrokCSVConcurrentProcessor")
+    if processor is None:
+        # 兼容 legacy GrokBatchProcessor
+        processor = _get_node_by_type(nodes, "GrokBatchProcessor")
+    assert processor is not None, "缺少批量处理节点 (GrokCSVConcurrentProcessor 或 GrokBatchProcessor)"
+
+    if processor.get("type") == "GrokCSVConcurrentProcessor":
+        # 当前并发处理器
+        values = processor.get("widgets_values", [])
+        assert len(values) == 11, "GrokCSVConcurrentProcessor 参数数量不正确"
+        assert values[1] == save_dir, f"save_dir 必须为 {save_dir}"
+    else:
+        # legacy 串行处理器
+        values = processor.get("widgets_values", [])
+        assert len(values) >= 7, "GrokBatchProcessor 参数数量不正确"
+        assert values[1] == save_dir, f"video_save_dir 必须为 {save_dir}"
 
     # 校验处理结果和输出目录都被连到 ShowText
     processor_id = processor["id"]

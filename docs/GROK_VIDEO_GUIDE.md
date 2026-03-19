@@ -33,7 +33,7 @@ Grok 视频生成节点集成了 Grok-Video-3 模型，提供高质量的 AI 视
 - 简化工作流程
 - 实时预览生成结果
 
-### 4. 📦 Grok 批量处理器 (GrokBatchProcessor)
+### 4. 📦 Grok CSV 并发批量处理器 (GrokCSVConcurrentProcessor)
 
 通过 CSV 文件批量创建多个视频生成任务。
 
@@ -180,7 +180,7 @@ GrokCreateVideo → GrokQueryVideo
 
 **工作流**：
 ```
-CSVBatchReader → GrokBatchProcessor
+CSVBatchReader → GrokCSVConcurrentProcessor
 ├─ csv_path: examples/grok_batch_basic.csv
 └─ ...
 ```

@@ -50,9 +50,11 @@ prompt,model,aspect_ratio,size,enhance_prompt,image_urls,output_prefix
 ## ⚙️ 推荐配置
 
 ```
-wait_for_completion: false  # 快速提交
-delay_between_tasks: 2.0    # 任务间隔
-output_dir: ./output/grok_batch
+save_dir: output/grok
+batch_size: 10
+max_wait_time: 1200
+poll_interval: 10
+download_timeout: 180
 ```
 
 ## 📁 输出文件
@@ -72,7 +74,7 @@ output_dir: ./output/grok_batch
 |------|---------|
 | CSV 读取失败 | 检查 UTF-8 编码 |
 | API Key 错误 | 设置环境变量或节点参数 |
-| 任务提交慢 | 设置 `wait_for_completion: false` |
+| 任务提交慢 | 减小 `batch_size` 或增大 `poll_interval`，并分批处理 |
 
 ## 📚 完整文档
 

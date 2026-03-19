@@ -24,17 +24,17 @@ class VeoBatchImageToCSVTask:
                     "tooltip": "提示词模板（支持 {index} 占位符，如：第{index}个视频）"
                 }),
                 "model": ([
+                    "veo_3_1-fast",
+                    "veo_3_1-fast-4K",
                     "veo3.1",
                     "veo3",
                     "veo3-fast",
                     "veo3-pro",
-                    "veo_3_1-fast",
                     "veo3.1-fast-components",
-                    "veo_3_1-fast-4K",
                     "veo3.1-4k",
                     "veo3.1-pro-4k",
                 ], {
-                    "default": "veo3.1",
+                    "default": "veo_3_1-fast",
                     "tooltip": "Veo3 模型"
                 }),
                 "aspect_ratio": (["16:9", "9:16"], {

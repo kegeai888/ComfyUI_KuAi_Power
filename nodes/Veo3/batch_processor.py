@@ -1,4 +1,4 @@
-"""Veo3 批量视频生成处理器"""
+"""Veo3 legacy 批量视频生成处理器"""
 
 import json
 import os
@@ -11,7 +11,7 @@ from .veo3 import VeoText2Video, VeoImage2Video, VeoQueryTask
 
 
 class Veo3BatchProcessor:
-    """Veo3 批量视频生成处理器"""
+    """Veo3 legacy 串行批量视频生成处理器"""
 
     def __init__(self):
         self.text2video = VeoText2Video()
@@ -386,5 +386,5 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Veo3BatchProcessor": "📦 Veo3 批量处理器",
+    "Veo3BatchProcessor": "📦 Veo3 批量处理器（legacy，已弃用）",
 }

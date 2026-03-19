@@ -1,5 +1,5 @@
 {
-  "last_node_id": 5,
+  "last_node_id": 6,
   "last_link_id": 5,
   "nodes": [
     {
@@ -39,7 +39,7 @@
       ],
       "color": "#232",
       "bgcolor": "#353",
-      "title": "📤 批量上传本地图片（legacy）"
+      "title": "📤 批量上传本地图片"
     },
     {
       "id": 2,
@@ -70,22 +70,17 @@
       },
       "widgets_values": [
         "将这张图片转换为视频，添加自然的镜头运动和电影级灯光效果",
-        "veo3.1",
-        6,
-        "16:9",
-        true,
-        false,
         "veo3_local"
       ],
       "color": "#322",
       "bgcolor": "#533",
-      "title": "🔄 图片URL转Veo3批量任务（legacy）"
+      "title": "🔄 图片URL转Veo3批量任务"
     },
     {
       "id": 3,
-      "type": "Veo3BatchProcessor",
+      "type": "VeoCSVConcurrentProcessor",
       "pos": [1100, 100],
-      "size": [450, 400],
+      "size": [470, 420],
       "flags": {},
       "order": 2,
       "mode": 0,
@@ -98,14 +93,14 @@
       ],
       "outputs": [
         {
-          "name": "处理结果",
+          "name": "处理报告",
           "type": "STRING",
           "links": [4],
           "shape": 3,
           "slot_index": 0
         },
         {
-          "name": "输出目录",
+          "name": "视频保存目录",
           "type": "STRING",
           "links": [5],
           "shape": 3,
@@ -113,20 +108,24 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "Veo3BatchProcessor"
+        "Node name for S&R": "VeoCSVConcurrentProcessor"
       },
       "widgets_values": [
         "",
-        "./output/veo3_local_batch",
-        2.0,
-        "https://api.kegeai.top",
+        "output/veo3_local_batch",
+        10,
+        "veo_3_1-fast",
+        "16:9",
+        true,
         false,
+        "https://api.kegeai.top",
         1200,
-        15
+        15,
+        180
       ],
       "color": "#223",
       "bgcolor": "#335",
-      "title": "📦 Veo3批量处理器（legacy）"
+      "title": "📦 Veo3 CSV 并发批量处理器"
     },
     {
       "id": 4,
@@ -151,7 +150,7 @@
       ],
       "color": "#232",
       "bgcolor": "#353",
-      "title": "📊 处理结果显示（legacy）"
+      "title": "📊 处理结果显示"
     },
     {
       "id": 5,
@@ -176,7 +175,32 @@
       ],
       "color": "#232",
       "bgcolor": "#353",
-      "title": "📋 上传详情显示（legacy）"
+      "title": "📋 上传详情显示"
+    },
+    {
+      "id": 6,
+      "type": "ShowText",
+      "pos": [1650, 430],
+      "size": [400, 140],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 5
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ShowText"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "color": "#223",
+      "bgcolor": "#335",
+      "title": "📁 输出目录显示"
     }
   ],
   "links": [
@@ -184,13 +208,13 @@
     [2, 1, 1, 5, 0, "STRING"],
     [3, 2, 0, 3, 0, "STRING"],
     [4, 3, 0, 4, 0, "STRING"],
-    [5, 3, 1, 4, 0, "STRING"]
+    [5, 3, 1, 6, 0, "STRING"]
   ],
   "groups": [],
   "config": {},
   "extra": {
     "workflow_info": {
-      "name": "Veo3 本地图片批量生成视频工作流（legacy）",
+      "name": "Veo3 本地图片批量生成视频工作流",
       "description": "从本地目录读取图片，批量上传后生成Veo3视频",
       "version": "1.0.0",
       "author": "ComfyUI_KuAi_Power",

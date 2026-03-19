@@ -27,7 +27,7 @@
 ### 工作流架构
 
 ```
-CSV文件 → CSV批量读取器 → Grok批量处理器 → 结果显示
+CSV文件 → CSV批量读取器 → Grok CSV 并发批量处理器 → 结果显示
                                     ↓
                               输出目录显示
 ```
@@ -46,7 +46,7 @@ CSV文件 → CSV批量读取器 → Grok批量处理器 → 结果显示
    - 解析任务数据
    - 输出 JSON 格式的批量任务
 
-2. **📦 Grok批量处理器** (`GrokBatchProcessor`)
+2. **📦 Grok CSV 并发批量处理器** (`GrokCSVConcurrentProcessor`)
    - 接收批量任务
    - 逐个提交视频生成请求
    - 可选等待任务完成
@@ -148,38 +148,42 @@ prompt,model,aspect_ratio,size,enhance_prompt,image_urls,output_prefix
 | **csv_path** | CSV文件绝对路径（优先级高于 csv_file） | 空 |
 | **encoding** | 文件编码 | `utf-8` |
 
-### Grok批量处理器参数
+### Grok CSV 并发批量处理器参数
 
 | 参数 | 说明 | 默认值 | 推荐值 |
 |------|------|--------|--------|
 | **api_key** | API密钥 | 空（使用环境变量） | 留空或填写 |
-| **output_dir** | 输出目录 | `./output/grok_batch` | 自定义路径 |
-| **delay_between_tasks** | 任务间延迟（秒） | 2.0 | 2.0-5.0 |
+| **save_dir** | 视频保存目录 | `output/grok` | 按项目自定义 |
+| **batch_size** | 并发批次大小 | 10 | 5-10 |
+| **default_model** | 默认模型（CSV未指定时生效） | `grok-video-3 (6秒)` | 按需求选择 |
+| **default_aspect_ratio** | 默认宽高比（CSV未指定时生效） | `3:2` | `3:2` |
+| **default_size** | 默认分辨率（CSV未指定时生效） | `720P` | `1080P` |
+| **default_enhance_prompt** | 默认提示词增强（CSV未指定时生效） | `true` | `true` |
 | **api_base** | API端点地址 | `https://api.kegeai.top` | 默认即可 |
-| **wait_for_completion** | 是否等待任务完成 | `false` | `false`（推荐） |
 | **max_wait_time** | 单个任务最大等待时间（秒） | 1200 | 600-1800 |
 | **poll_interval** | 轮询间隔（秒） | 10 | 10-30 |
+| **download_timeout** | 下载超时时间（秒） | 180 | 120-300 |
 
 ### 参数配置建议
 
 #### 快速提交模式（推荐）
 ```
-wait_for_completion: false
-delay_between_tasks: 2.0
+batch_size: 10
+poll_interval: 10
 ```
-- ✅ 快速提交所有任务
-- ✅ 不阻塞工作流
-- ✅ 后续手动查询任务状态
+- ✅ 分批并发提交与处理
+- ✅ 在保持稳定性的同时提升吞吐
+- ✅ 适合常规批量任务
 
 #### 等待完成模式
 ```
-wait_for_completion: true
+batch_size: 5
 max_wait_time: 1200
 poll_interval: 10
 ```
-- ⚠️ 会等待所有任务完成
+- ⚠️ 会等待批次内任务完成
 - ⚠️ 耗时较长（每个任务 5-20 分钟）
-- ✅ 自动获取视频URL
+- ✅ 自动获取视频URL并下载到本地
 
 ---
 
@@ -210,7 +214,7 @@ export KUAI_API_KEY=your_api_key_here
 ```
 
 #### 方法 B: 节点参数
-在 `GrokBatchProcessor` 节点的 `api_key` 参数中填写。
+在 `GrokCSVConcurrentProcessor` 节点的 `api_key` 参数中填写。
 
 ### 步骤 3: 加载工作流
 
@@ -226,10 +230,10 @@ export KUAI_API_KEY=your_api_key_here
 - 修改 `csv_file` 为你的 CSV 文件名
 - 或使用 `csv_path` 指定绝对路径
 
-#### Grok批量处理器
-- 检查 `output_dir` 输出目录
-- 调整 `delay_between_tasks` 任务间延迟
-- 根据需要设置 `wait_for_completion`
+#### Grok CSV 并发批量处理器
+- 检查 `save_dir` 视频保存目录
+- 调整 `batch_size` 并发批次大小
+- 根据需要设置 `default_model/default_aspect_ratio/default_size/default_enhance_prompt`
 
 ### 步骤 5: 执行工作流
 
@@ -237,9 +241,9 @@ export KUAI_API_KEY=your_api_key_here
 2. 观察控制台输出：
    ```
    ============================================================
-   [GrokBatch] 开始批量处理 8 个视频生成任务
-   [GrokBatch] 输出目录: ./output/grok_text2video_batch
-   [GrokBatch] 等待完成: 否
+   [GrokCSVConcurrent] 共 8 个任务，每批 5 路并发
+   [GrokCSVConcurrent] 保存目录: output/grok
+   [GrokCSVConcurrent] 会话ID: grok_1741795200
    ============================================================
 
    [1/8] 处理任务 (行 2)
@@ -298,7 +302,7 @@ python scripts/query_grok_tasks.py ./output/grok_text2video_batch/tasks.json
 export KUAI_API_KEY=your_key
 
 # 方法2: 节点参数
-在 GrokBatchProcessor 的 api_key 参数中填写
+在 `GrokCSVConcurrentProcessor` 的 `api_key` 参数中填写
 ```
 
 ### Q3: 任务提交失败？
@@ -317,8 +321,8 @@ export KUAI_API_KEY=your_key
 
 ### Q5: 批量处理太慢？
 **A**: 优化建议：
-- 设置 `wait_for_completion: false`（快速提交模式）
-- 减小 `delay_between_tasks`（但不要低于 1.0 秒）
+- 减小 `batch_size`（例如 10 调整到 5，降低并发压力）
+- 增大 `poll_interval`（减少高频查询）
 - 分批处理（每批 10-20 个任务）
 
 ### Q6: 图生视频的图片 URL 格式？

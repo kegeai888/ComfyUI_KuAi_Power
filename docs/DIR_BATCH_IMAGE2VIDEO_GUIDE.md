@@ -295,7 +295,7 @@ export KUAI_API_KEY=your_key_here
 ### 旧工作流（3 节点）
 
 ```
-BatchImageUploader → BatchImageToCSVTask → CSVConcurrentProcessor
+BatchImageUploader → BatchImageToCSVTask（GrokBatchImageToCSVTask / VeoBatchImageToCSVTask） → CSVConcurrentProcessor（GrokCSVConcurrentProcessor / VeoCSVConcurrentProcessor）
 ```
 
 **缺点**：

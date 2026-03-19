@@ -72,6 +72,7 @@ def _process_one_task(task_idx: int, task: dict,
         # 更新状态：pending
         if state_manager:
             state_manager.update_task(task_idx, "pending", prompt=prompt)
+            state_manager.add_log(task_idx, "INFO", f"任务准备就绪 | 提示词: {prompt[:50]}...")
 
         # 1. 提交任务
         creator = _GrokCreateVideo()
@@ -87,6 +88,7 @@ def _process_one_task(task_idx: int, task: dict,
         # 更新状态：processing
         if state_manager:
             state_manager.update_task(task_idx, "processing", task_id=task_id)
+            state_manager.add_log(task_idx, "INFO", f"任务已提交 | task_id: {task_id} | 模型: {model}")
 
         # 2. 轮询直到完成
         querier = _GrokQueryVideo()
@@ -98,6 +100,11 @@ def _process_one_task(task_idx: int, task: dict,
                 # query 返回 (task_id, status, video_url, enhanced_prompt, status_update_time)
                 _, status, video_url, _, _ = querier.query(task_id, api_key, api_base)
                 result["status"] = status
+
+                # 记录轮询日志
+                if state_manager:
+                    state_manager.add_log(task_idx, "DEBUG", f"轮询中 {elapsed}/{max_wait_time}s | 状态: {status}")
+
                 if status == "completed" and video_url:
                     result["video_url"] = video_url
                     print(f"[GrokCSVConcurrent] [{task_idx}] 完成，下载中...")
@@ -105,6 +112,7 @@ def _process_one_task(task_idx: int, task: dict,
                     # 更新状态：completed（下载前）
                     if state_manager:
                         state_manager.update_task(task_idx, "completed", video_url=video_url)
+                        state_manager.add_log(task_idx, "INFO", f"生成完成 | 开始下载: {video_url[:60]}...")
 
                     local = _download(video_url, save_dir, output_prefix, download_timeout)
                     result["local_path"] = local
@@ -112,6 +120,7 @@ def _process_one_task(task_idx: int, task: dict,
                     # 更新状态：completed（下载后）
                     if state_manager:
                         state_manager.update_task(task_idx, "completed", video_url=video_url, local_path=local)
+                        state_manager.add_log(task_idx, "INFO", f"下载完成 | 保存至: {local}")
 
                     return result
                 print(f"[GrokCSVConcurrent] [{task_idx}] 进行中 {elapsed}/{max_wait_time}s")
@@ -130,15 +139,8 @@ def _process_one_task(task_idx: int, task: dict,
         # 更新状态：failed
         if state_manager:
             state_manager.update_task(task_idx, "failed", error=str(e))
+            state_manager.add_log(task_idx, "ERROR", f"任务失败 | 错误: {str(e)}")
 
-        return result
-
-        raise RuntimeError(f"超时 ({max_wait_time}s)")
-
-    except Exception as e:
-        result["error"] = str(e)
-        result["status"] = "failed"
-        print(f"[GrokCSVConcurrent] [{task_idx}] ✗ {e}")
         return result
 
 

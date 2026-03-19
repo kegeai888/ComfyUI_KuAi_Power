@@ -15,7 +15,7 @@
 ## 工作流架构
 
 ```
-BatchImageUploader → BatchImageToCSVTask → CSVConcurrentProcessor
+BatchImageUploader → BatchImageToCSVTask（GrokBatchImageToCSVTask / VeoBatchImageToCSVTask） → CSVConcurrentProcessor（GrokCSVConcurrentProcessor / VeoCSVConcurrentProcessor）
   (上传图片)           (生成任务列表)          (并发处理+下载)
 ```
 

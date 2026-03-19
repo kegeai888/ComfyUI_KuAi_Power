@@ -29,9 +29,9 @@
 ### 工作流架构
 
 ```
-CSV文件 → CSV批量读取器 → Veo3批量处理器 → 结果显示
-                                    ↓
-                              输出目录显示
+CSV文件 → CSV批量读取器 → VeoCSVConcurrentProcessor → 结果显示
+                                       ↓
+                                 输出目录显示
 ```
 
 ---
@@ -48,11 +48,11 @@ CSV文件 → CSV批量读取器 → Veo3批量处理器 → 结果显示
    - 解析任务数据
    - 输出 JSON 格式的批量任务
 
-2. **📦 Veo3批量处理器** (`Veo3BatchProcessor`)
+2. **📦 Veo3 CSV 并发批量处理器** (`VeoCSVConcurrentProcessor`)
    - 接收批量任务
+   - 按批次并发提交视频生成请求
    - 自动识别任务类型（文生/图生）
-   - 逐个提交视频生成请求
-   - 可选等待任务完成
+   - 轮询任务状态并在完成后自动下载视频
    - 保存任务信息到输出目录
 
 3. **📊 处理结果显示** (`ShowText`)
@@ -160,38 +160,41 @@ image2video,"为这只猫咪添加动态效果，眨眼和转动",veo3.1,9:16,tr
 | **csv_path** | CSV文件绝对路径（优先级高于 csv_file） | 空 |
 | **encoding** | 文件编码 | `utf-8` |
 
-### Veo3批量处理器参数
+### Veo3 CSV 并发批量处理器参数
 
 | 参数 | 说明 | 默认值 | 推荐值 |
 |------|------|--------|--------|
 | **api_key** | API密钥 | 空（使用环境变量） | 留空或填写 |
-| **output_dir** | 输出目录 | `./output/veo3_batch` | 自定义路径 |
-| **delay_between_tasks** | 任务间延迟（秒） | 2.0 | 2.0-5.0 |
+| **save_dir** | 视频保存目录 | `output/veo3` | 按场景自定义 |
+| **batch_size** | 并发批次大小 | `10` | `5-10` |
+| **default_model** | 默认模型 | `veo_3_1-fast` | 按质量/速度选择 |
+| **default_aspect_ratio** | 默认宽高比 | `9:16` | 按内容选择 |
+| **default_enhance_prompt** | 默认提示词增强 | `true` | `true`（推荐） |
+| **default_enable_upsample** | 默认超分 | `true` | 按需开启 |
 | **api_base** | API端点地址 | `https://api.kegeai.top` | 默认即可 |
-| **wait_for_completion** | 是否等待任务完成 | `false` | `false`（推荐） |
-| **max_wait_time** | 单个任务最大等待时间（秒） | 1200 | 600-3600 |
-| **poll_interval** | 轮询间隔（秒） | 15 | 15-30 |
+| **max_wait_time** | 单任务最大等待时间（秒） | `1200` | `600-3600` |
+| **poll_interval** | 轮询间隔（秒） | `15` | `15-30` |
+| **download_timeout** | 下载超时时间（秒） | `180` | `60-180` |
 
 ### 参数配置建议
 
-#### 快速提交模式（推荐）
+#### 并发处理模式（推荐）
 ```
-wait_for_completion: false
-delay_between_tasks: 2.0
-```
-- ✅ 快速提交所有任务
-- ✅ 不阻塞工作流
-- ✅ 后续手动查询任务状态
-
-#### 等待完成模式
-```
-wait_for_completion: true
-max_wait_time: 1800
+batch_size: 5-10
 poll_interval: 15
 ```
-- ⚠️ 会等待所有任务完成
-- ⚠️ 耗时较长（每个任务 10-30 分钟）
-- ✅ 自动获取视频URL
+- ✅ 按批次并发提交任务
+- ✅ 自动轮询并下载完成视频
+- ✅ 适合中大批量任务
+
+#### 稳定保守模式
+```
+batch_size: 2-3
+poll_interval: 20-30
+```
+- ✅ 降低瞬时并发压力
+- ✅ 适合 API 配额紧张场景
+- ⚠️ 整体完成时间更长
 
 ---
 
@@ -222,7 +225,7 @@ export KUAI_API_KEY=your_api_key_here
 ```
 
 #### 方法 B: 节点参数
-在 `Veo3BatchProcessor` 节点的 `api_key` 参数中填写。
+在 `VeoCSVConcurrentProcessor` 节点的 `api_key` 参数中填写。
 
 ### 步骤 3: 加载工作流
 
@@ -238,10 +241,11 @@ export KUAI_API_KEY=your_api_key_here
 - 修改 `csv_file` 为你的 CSV 文件名
 - 或使用 `csv_path` 指定绝对路径
 
-#### Veo3批量处理器
-- 检查 `output_dir` 输出目录
-- 调整 `delay_between_tasks` 任务间延迟
-- 根据需要设置 `wait_for_completion`
+#### Veo3 CSV 并发批量处理器
+- 检查 `save_dir` 视频保存目录
+- 调整 `batch_size` 并发批次大小
+- 根据需要设置 `default_model`、`default_aspect_ratio`
+- 根据需要设置 `default_enhance_prompt`、`default_enable_upsample`
 
 ### 步骤 5: 执行工作流
 
@@ -249,19 +253,15 @@ export KUAI_API_KEY=your_api_key_here
 2. 观察控制台输出：
    ```
    ============================================================
-   [Veo3Batch] 开始批量处理 8 个视频生成任务
-   [Veo3Batch] 输出目录: ./output/veo3_text2video_batch
-   [Veo3Batch] 等待完成: 否
+   [VeoCSVConcurrent] 共 8 个任务，每批 5 路并发
+   [VeoCSVConcurrent] 保存目录: output/veo3
+   [VeoCSVConcurrent] 会话ID: veo3_csv_1700000000
    ============================================================
 
-   [1/8] 处理任务 (行 2)
-     任务类型: text2video
-     提示词: 一只可爱的小猫在花园里追逐蝴蝶...
-     模型: veo3.1, 宽高比: 9:16
-     增强提示词: True, 超分: True
-     任务ID: task_xxx
-     状态: pending
-   ✓ 任务 1 完成
+   [VeoCSVConcurrent] 批次 1/2：提交 5 个任务
+   [VeoCSVConcurrent] [1] 已提交 task_id=task_xxx
+   [VeoCSVConcurrent] [1] 进行中 15/1200s
+   [VeoCSVConcurrent] [1] 完成，下载中...
    ...
    ```
 
@@ -269,16 +269,16 @@ export KUAI_API_KEY=your_api_key_here
 
 #### 处理结果显示
 ```
-批量处理完成
-总任务数: 8
-成功: 8
-失败: 0
+Veo3 CSV 并发处理完成
+总计: 8  成功: 8  失败: 0
+保存目录: output/veo3
 ```
 
 #### 输出目录
 ```
-./output/veo3_text2video_batch/
-├── tasks.json          # 任务列表（包含 task_id）
+output/veo3/
+├── cat_butterfly_a1b2c3d4.mp4
+├── eagle_mountains_e5f6g7h8.mp4
 └── ...
 ```
 
@@ -313,7 +313,7 @@ curl -H "Authorization: Bearer $KUAI_API_KEY" \
 export KUAI_API_KEY=your_key
 
 # 方法2: 节点参数
-在 Veo3BatchProcessor 的 api_key 参数中填写
+在 VeoCSVConcurrentProcessor 的 api_key 参数中填写
 ```
 
 ### Q3: 任务提交失败？
@@ -332,8 +332,8 @@ export KUAI_API_KEY=your_key
 
 ### Q5: 批量处理太慢？
 **A**: 优化建议：
-- 设置 `wait_for_completion: false`（快速提交模式）
-- 减小 `delay_between_tasks`（但不要低于 1.0 秒）
+- 提高 `batch_size`（建议 5-10）
+- 适当增大 `poll_interval` 降低查询压力
 - 分批处理（每批 10-20 个任务）
 - 使用 `veo3-fast` 模型加快生成速度
 

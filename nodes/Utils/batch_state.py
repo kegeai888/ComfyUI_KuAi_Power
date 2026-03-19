@@ -9,6 +9,13 @@ from typing import Dict, List, Any
 import threading
 
 
+class LogLevel:
+    """日志级别"""
+    SIMPLE = 1    # 只记录关键节点
+    STANDARD = 2  # 记录主要操作
+    VERBOSE = 3   # 记录所有细节
+
+
 class BatchProcessState:
     """批量处理状态管理（单例模式）"""
 
@@ -38,6 +45,8 @@ class BatchProcessState:
             "failed": 0,
             "processing": 0,
             "tasks": [],
+            "logs": [],  # 新增：详细日志列表
+            "statistics": {},  # 新增：统计信息
             "last_update": ""
         }
 
@@ -51,6 +60,12 @@ class BatchProcessState:
             "failed": 0,
             "processing": 0,
             "tasks": [],
+            "logs": [],
+            "statistics": {
+                "avg_duration": 0.0,
+                "success_rate": 0.0,
+                "estimated_remaining": 0
+            },
             "last_update": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         self._save_state()
@@ -108,6 +123,84 @@ class BatchProcessState:
         self.current_state["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self._save_state()
 
+    def add_log(self, task_idx: int, level: str, message: str, max_logs: int = 1000):
+        """
+        添加日志条目
+
+        Args:
+            task_idx: 任务索引
+            level: 日志级别 (INFO, DEBUG, WARNING, ERROR)
+            message: 日志消息
+            max_logs: 最大日志条数（使用循环缓冲区）
+        """
+        log_entry = {
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+            "task_idx": task_idx,
+            "level": level,
+            "message": message
+        }
+
+        # 添加日志
+        self.current_state["logs"].append(log_entry)
+
+        # 限制日志数量（FIFO）
+        if len(self.current_state["logs"]) > max_logs:
+            self.current_state["logs"] = self.current_state["logs"][-max_logs:]
+
+        self.current_state["last_update"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self._save_state()
+
+    def get_statistics(self) -> Dict[str, Any]:
+        """
+        计算统计信息
+
+        Returns:
+            包含平均耗时、成功率、预计剩余时间的字典
+        """
+        stats = {
+            "avg_duration": 0.0,
+            "success_rate": 0.0,
+            "estimated_remaining": 0
+        }
+
+        try:
+            # 获取已完成的任务
+            completed_tasks = [t for t in self.current_state["tasks"] if t["status"] == "completed"]
+
+            if completed_tasks:
+                # 计算平均耗时
+                durations = []
+                for task in completed_tasks:
+                    try:
+                        start_time = datetime.strptime(task["start_time"], "%H:%M:%S")
+                        update_time = datetime.strptime(task["update_time"], "%H:%M:%S")
+                        duration = (update_time - start_time).total_seconds()
+                        if duration > 0:
+                            durations.append(duration)
+                    except:
+                        pass
+
+                if durations:
+                    stats["avg_duration"] = sum(durations) / len(durations)
+
+            # 计算成功率
+            finished = self.current_state["completed"] + self.current_state["failed"]
+            if finished > 0:
+                stats["success_rate"] = (self.current_state["completed"] / finished) * 100
+
+            # 预计剩余时间
+            remaining = self.current_state["total"] - finished
+            if stats["avg_duration"] > 0 and remaining > 0:
+                stats["estimated_remaining"] = int(stats["avg_duration"] * remaining)
+
+        except Exception as e:
+            print(f"[BatchProcessState] 计算统计信息失败: {e}")
+
+        # 更新状态中的统计信息
+        self.current_state["statistics"] = stats
+
+        return stats
+
     def _save_state(self):
         """保存状态到文件"""
         try:
@@ -137,6 +230,8 @@ class BatchProcessState:
             "failed": 0,
             "processing": 0,
             "tasks": [],
+            "logs": [],
+            "statistics": {},
             "last_update": ""
         }
         if self.state_file.exists():
