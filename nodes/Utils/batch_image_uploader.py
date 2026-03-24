@@ -56,7 +56,7 @@ class BatchImageUploader:
                 "timeout": ("INT", {
                     "default": 30,
                     "min": 1,
-                    "max": 300,
+                    "max": 1200,
                     "tooltip": "单个图片上传超时时间(秒)"
                 }),
                 "max_images": ("INT", {
