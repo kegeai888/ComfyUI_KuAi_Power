@@ -220,6 +220,8 @@ class VeoDirBatchImage2Video:
             },
             "optional": {
                 "model": ([
+                    "veo_3_1-lite",
+                    "veo_3_1-lite-4K",
                     "veo_3_1-fast",
                     "veo_3_1-fast-4K",
                     "veo3.1",
@@ -230,7 +232,7 @@ class VeoDirBatchImage2Video:
                     "veo3.1-4k",
                     "veo3.1-pro-4k",
                 ], {
-                    "default": "veo_3_1-fast",
+                    "default": "veo_3_1-lite",
                     "tooltip": "选择 Veo3 模型"
                 }),
                 "aspect_ratio": (["16:9", "9:16"], {

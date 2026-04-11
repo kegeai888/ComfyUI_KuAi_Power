@@ -76,6 +76,8 @@ class VeoText2Video:
             "required": {
                 "prompt": ("STRING", {"default": "", "multiline": True, "tooltip": "视频提示词（支持中英文）"}),
                 "model": ([
+                    "veo_3_1-lite",
+                    "veo_3_1-lite-4K",
                     "veo_3_1-fast",
                     "veo_3_1-fast-4K",
                     "veo3.1",
@@ -85,7 +87,7 @@ class VeoText2Video:
                     "veo3.1-fast-components",
                     "veo3.1-4k",
                     "veo3.1-pro-4k",
-                ], {"default": "veo_3_1-fast", "tooltip": "模型选择"}),
+                ], {"default": "veo_3_1-lite", "tooltip": "模型选择"}),
                 "aspect_ratio": (["16:9", "9:16"], {"default": "9:16", "tooltip": "视频宽高比"}),
                 "enhance_prompt": ("BOOLEAN", {"default": True, "tooltip": "自动将中文提示词优化并翻译为英文"}),
                 "enable_upsample": ("BOOLEAN", {"default": True, "tooltip": "启用超分以提升视频质量"}),
@@ -147,6 +149,8 @@ class VeoImage2Video:
             "required": {
                 "prompt": ("STRING", {"default": "", "multiline": True, "tooltip": "视频提示词（支持中英文）"}),
                 "model": ([
+                    "veo_3_1-lite",
+                    "veo_3_1-lite-4K",
                     "veo_3_1-fast",
                     "veo_3_1-fast-4K",
                     "veo3.1",
@@ -158,7 +162,7 @@ class VeoImage2Video:
                     "veo3.1-fast-components",
                     "veo3.1-4k",
                     "veo3.1-pro-4k",
-                ], {"default": "veo_3_1-fast", "tooltip": "模型选择"}),
+                ], {"default": "veo_3_1-lite", "tooltip": "模型选择"}),
                 "aspect_ratio": (["16:9", "9:16"], {"default": "9:16", "tooltip": "视频宽高比"}),
                 "enhance_prompt": ("BOOLEAN", {"default": True, "tooltip": "自动将中文提示词优化并翻译为英文"}),
                 "enable_upsample": ("BOOLEAN", {"default": True, "tooltip": "启用超分以提升视频质量"}),
