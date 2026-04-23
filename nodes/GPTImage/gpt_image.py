@@ -13,7 +13,7 @@ from ..Sora2.kuai_utils import (
     raise_for_bad_status,
 )
 
-MODEL = "gpt-image-2-all"
+MODELS = ["gpt-image-2", "gpt-image-2-all"]
 SIZES = ["auto（自动）", "1024x1024（1:1）", "1536x1024（16:9）", "1024x1536（9:16）"]
 SIZE_MAP = {
     "auto（自动）": "auto",
@@ -24,12 +24,15 @@ SIZE_MAP = {
 
 
 def _extract_urls(data: dict) -> list:
-    # Standard OpenAI format: {"data": [{"url": "..."}]}
+    # Standard OpenAI format: {"data": [{"url": "..."}]} or {"data": [{"b64_json": "..."}]}
     items = data.get("data") or []
     if items:
         urls = [item["url"].strip() for item in items if item.get("url")]
         if urls:
             return urls
+        b64s = [f"data:image/png;base64,{item['b64_json']}" for item in items if item.get("b64_json")]
+        if b64s:
+            return b64s
     # Fallback: choices[0].message.content
     choices = data.get("choices") or []
     if choices:
@@ -40,9 +43,14 @@ def _extract_urls(data: dict) -> list:
 
 
 def _url_to_tensor(url: str, timeout: int) -> torch.Tensor:
-    resp = requests.get(url, timeout=timeout)
-    resp.raise_for_status()
-    pil = Image.open(io.BytesIO(resp.content)).convert("RGB")
+    if url.startswith("data:"):
+        import base64
+        content = base64.b64decode(url.split(",", 1)[1])
+    else:
+        resp = requests.get(url, timeout=timeout)
+        resp.raise_for_status()
+        content = resp.content
+    pil = Image.open(io.BytesIO(content)).convert("RGB")
     arr = np.array(pil).astype(np.float32) / 255.0
     return torch.from_numpy(arr)[None,]
 
@@ -55,8 +63,9 @@ class GPTImage2Generate:
         return {
             "required": {
                 "prompt": ("STRING", {"multiline": True, "default": "", "tooltip": "图像描述提示词"}),
-                "size": (SIZES, {"default": "auto（自动）", "tooltip": "图像尺寸"}),
-                "n": ("INT", {"default": 1, "min": 1, "max": 4, "tooltip": "生成图像数量"}),
+                "model": (MODELS, {"default": "gpt-image-2", "tooltip": "模型选择"}),
+                "size": (SIZES, {"default": "auto（自动）", "tooltip": "图像尺寸（size）"}),
+                "n": ("INT", {"default": 1, "min": 1, "max": 10, "tooltip": "生成数量（1-10张）"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"}),
             },
             "optional": {
@@ -69,6 +78,7 @@ class GPTImage2Generate:
     def INPUT_LABELS(cls):
         return {
             "prompt": "提示词",
+            "model": "模型",
             "size": "图像尺寸",
             "n": "生成数量",
             "api_key": "API密钥",
@@ -81,14 +91,14 @@ class GPTImage2Generate:
     FUNCTION = "generate"
     CATEGORY = "KuAi/GPTImage"
 
-    def generate(self, prompt, size, n, api_key, api_base="https://ai.kegeai.top", timeout=120):
+    def generate(self, prompt, model, size, n, api_key, api_base="https://ai.kegeai.top", timeout=120):
         api_key = env_or(api_key, "KUAI_API_KEY")
         if not api_key:
             raise RuntimeError("API Key 未配置，请在节点参数或环境变量 KUAI_API_KEY 中设置")
         if not prompt.strip():
             raise RuntimeError("提示词不能为空")
 
-        payload = {"model": MODEL, "prompt": prompt, "n": n, "size": SIZE_MAP.get(size, size)}
+        payload = {"model": model, "prompt": prompt, "n": n, "size": SIZE_MAP.get(size, size)}
         resp = requests.post(
             f"{api_base.rstrip('/')}/v1/images/generations",
             json=payload,
@@ -114,8 +124,9 @@ class GPTImage2Edit:
             "required": {
                 "image_url_1": ("STRING", {"default": "", "tooltip": "图片URL 1（必填）"}),
                 "prompt": ("STRING", {"multiline": True, "default": "", "tooltip": "编辑描述提示词"}),
-                "size": (SIZES, {"default": "auto（自动）", "tooltip": "输出图像尺寸"}),
-                "n": ("INT", {"default": 1, "min": 1, "max": 4, "tooltip": "生成图像数量"}),
+                "model": (MODELS, {"default": "gpt-image-2", "tooltip": "模型选择"}),
+                "size": (SIZES, {"default": "auto（自动）", "tooltip": "输出图像尺寸（size）"}),
+                "n": ("INT", {"default": 1, "min": 1, "max": 10, "tooltip": "生成数量（1-10张）"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"}),
             },
             "optional": {
@@ -138,6 +149,7 @@ class GPTImage2Edit:
             "image_url_3": "图片URL 3",
             "image_url_4": "图片URL 4",
             "prompt": "编辑提示词",
+            "model": "模型",
             "size": "图像尺寸",
             "n": "生成数量",
             "api_key": "API密钥",
@@ -153,7 +165,7 @@ class GPTImage2Edit:
     FUNCTION = "edit"
     CATEGORY = "KuAi/GPTImage"
 
-    def edit(self, image_url_1, prompt, size, n, api_key,
+    def edit(self, image_url_1, prompt, model, size, n, api_key,
              image_url_2="", image_url_3="", image_url_4="",
              quality="auto", background="auto", moderation="auto",
              api_base="https://ai.kegeai.top", timeout=120):
@@ -174,7 +186,7 @@ class GPTImage2Edit:
             files.append(("image[]", (f"image_{i}.png", r.content, "image/png")))
 
         form_data = {
-            "model": MODEL,
+            "model": model,
             "prompt": prompt,
             "n": str(n),
             "size": SIZE_MAP.get(size, size),
