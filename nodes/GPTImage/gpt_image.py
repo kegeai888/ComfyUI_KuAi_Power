@@ -8,8 +8,6 @@ from PIL import Image
 
 from ..Sora2.kuai_utils import (
     env_or,
-    to_pil_from_comfy,
-    save_image_to_buffer,
     http_headers_json,
     http_headers_multipart,
     raise_for_bad_status,
@@ -29,11 +27,15 @@ def _extract_urls(data: dict) -> list:
     # Standard OpenAI format: {"data": [{"url": "..."}]}
     items = data.get("data") or []
     if items:
-        return [item["url"].strip() for item in items if item.get("url")]
+        urls = [item["url"].strip() for item in items if item.get("url")]
+        if urls:
+            return urls
     # Fallback: choices[0].message.content
     choices = data.get("choices") or []
     if choices:
-        return [c["message"]["content"].strip() for c in choices if c.get("message", {}).get("content")]
+        urls = [c["message"]["content"].strip() for c in choices if c.get("message", {}).get("content")]
+        if urls:
+            return urls
     raise RuntimeError(f"响应中没有图像数据: {data}")
 
 
@@ -53,7 +55,7 @@ class GPTImage2Generate:
         return {
             "required": {
                 "prompt": ("STRING", {"multiline": True, "default": "", "tooltip": "图像描述提示词"}),
-                "size": (SIZES, {"default": "auto", "tooltip": "图像尺寸"}),
+                "size": (SIZES, {"default": "auto（自动）", "tooltip": "图像尺寸"}),
                 "n": ("INT", {"default": 1, "min": 1, "max": 4, "tooltip": "生成图像数量"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"}),
             },
@@ -104,19 +106,22 @@ class GPTImage2Generate:
 
 
 class GPTImage2Edit:
-    """GPT Image 2 图片编辑节点"""
+    """GPT Image 2 图片编辑节点（支持1-4张图片URL）"""
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "image": ("IMAGE", {"tooltip": "要编辑的图片"}),
+                "image_url_1": ("STRING", {"default": "", "tooltip": "图片URL 1（必填）"}),
                 "prompt": ("STRING", {"multiline": True, "default": "", "tooltip": "编辑描述提示词"}),
-                "size": (SIZES, {"default": "auto", "tooltip": "输出图像尺寸"}),
+                "size": (SIZES, {"default": "auto（自动）", "tooltip": "输出图像尺寸"}),
                 "n": ("INT", {"default": 1, "min": 1, "max": 4, "tooltip": "生成图像数量"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"}),
             },
             "optional": {
+                "image_url_2": ("STRING", {"default": "", "tooltip": "图片URL 2（可选）"}),
+                "image_url_3": ("STRING", {"default": "", "tooltip": "图片URL 3（可选）"}),
+                "image_url_4": ("STRING", {"default": "", "tooltip": "图片URL 4（可选）"}),
                 "quality": (["auto", "high", "medium", "low"], {"default": "auto", "tooltip": "图像质量"}),
                 "background": (["auto", "transparent", "opaque"], {"default": "auto", "tooltip": "背景透明度"}),
                 "moderation": (["auto", "low"], {"default": "auto", "tooltip": "内容审核级别"}),
@@ -128,7 +133,10 @@ class GPTImage2Edit:
     @classmethod
     def INPUT_LABELS(cls):
         return {
-            "image": "输入图片",
+            "image_url_1": "图片URL 1",
+            "image_url_2": "图片URL 2",
+            "image_url_3": "图片URL 3",
+            "image_url_4": "图片URL 4",
             "prompt": "编辑提示词",
             "size": "图像尺寸",
             "n": "生成数量",
@@ -145,7 +153,8 @@ class GPTImage2Edit:
     FUNCTION = "edit"
     CATEGORY = "KuAi/GPTImage"
 
-    def edit(self, image, prompt, size, n, api_key,
+    def edit(self, image_url_1, prompt, size, n, api_key,
+             image_url_2="", image_url_3="", image_url_4="",
              quality="auto", background="auto", moderation="auto",
              api_base="https://ai.kegeai.top", timeout=120):
         api_key = env_or(api_key, "KUAI_API_KEY")
@@ -153,11 +162,17 @@ class GPTImage2Edit:
             raise RuntimeError("API Key 未配置，请在节点参数或环境变量 KUAI_API_KEY 中设置")
         if not prompt.strip():
             raise RuntimeError("提示词不能为空")
+        if not image_url_1.strip():
+            raise RuntimeError("至少需要提供一张图片URL")
 
-        pil = to_pil_from_comfy(image)
-        buf = save_image_to_buffer(pil, "PNG", 95)
+        image_urls = [u.strip() for u in [image_url_1, image_url_2, image_url_3, image_url_4] if u.strip()]
 
-        files = {"image": ("image.png", buf, "image/png")}
+        files = []
+        for i, url in enumerate(image_urls):
+            r = requests.get(url, timeout=timeout)
+            r.raise_for_status()
+            files.append(("image[]", (f"image_{i}.png", r.content, "image/png")))
+
         form_data = {
             "model": MODEL,
             "prompt": prompt,
@@ -182,5 +197,5 @@ class GPTImage2Edit:
         tensors = [_url_to_tensor(u, timeout) for u in urls]
 
         image_tensor = torch.cat(tensors, dim=0)
-        print(f"[GPTImage] 图片编辑完成，生成 {len(urls)} 张图像")
+        print(f"[GPTImage] 图片编辑完成，输入{len(image_urls)}张图，生成{len(urls)}张图像")
         return (image_tensor, "\n".join(urls))
