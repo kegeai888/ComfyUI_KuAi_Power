@@ -91,7 +91,7 @@ class GPTImage2Generate:
     FUNCTION = "generate"
     CATEGORY = "KuAi/GPTImage"
 
-    def generate(self, prompt, model, size, n, api_key, api_base="https://ai.kegeai.top", timeout=120):
+    def generate(self, prompt, model, size, n, api_key, api_base="https://ai.kegeai.top", timeout=1800):
         api_key = env_or(api_key, "KUAI_API_KEY")
         if not api_key:
             raise RuntimeError("API Key 未配置，请在节点参数或环境变量 KUAI_API_KEY 中设置")
@@ -168,7 +168,7 @@ class GPTImage2Edit:
     def edit(self, image_url_1, prompt, model, size, n, api_key,
              image_url_2="", image_url_3="", image_url_4="",
              quality="auto", background="auto", moderation="auto",
-             api_base="https://ai.kegeai.top", timeout=120):
+             api_base="https://ai.kegeai.top", timeout=1800):
         api_key = env_or(api_key, "KUAI_API_KEY")
         if not api_key:
             raise RuntimeError("API Key 未配置，请在节点参数或环境变量 KUAI_API_KEY 中设置")
