@@ -95,7 +95,7 @@ class VeoText2Video:
             "optional": {
                 "api_base": ("STRING", {"default": "https://api.kegeai.top", "tooltip": "API端点地址"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥"}),
-                "timeout": ("INT", {"default": 120, "min": 5, "max": 600, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 5, "max": 9999, "tooltip": "超时时间(秒)"}),
                 "custom_model": ("STRING", {"default": "", "tooltip": "自定义模型名（留空使用下拉模型）"}),
             }
         }
@@ -173,7 +173,7 @@ class VeoImage2Video:
                 "image_3": ("STRING", {"default": "", "multiline": False, "tooltip": "参考图3 URL (元素)"}),
                 "api_base": ("STRING", {"default": "https://api.kegeai.top", "tooltip": "API端点地址"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥"}),
-                "timeout": ("INT", {"default": 120, "min": 5, "max": 600, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 5, "max": 9999, "tooltip": "超时时间(秒)"}),
                 "custom_model": ("STRING", {"default": "", "tooltip": "自定义模型名（留空使用下拉模型）"}),
             }
         }
@@ -243,7 +243,7 @@ class VeoQueryTask:
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥"}),
                 "wait": ("BOOLEAN", {"default": True, "tooltip": "是否等待任务完成"}),
                 "poll_interval_sec": ("INT", {"default": 15, "min": 5, "max": 90, "tooltip": "轮询间隔(秒)"}),
-                "timeout_sec": ("INT", {"default": 1800, "min": 600, "max": 9600, "tooltip": "总超时时间(秒)"}),
+                "timeout_sec": ("INT", {"default": 1800, "min": 600, "max": 9999, "tooltip": "总超时时间(秒)"}),
             }
         }
 

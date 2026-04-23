@@ -33,7 +33,7 @@ class UploadToImageHost:
                 "upload_url": ("STRING", {"default": "https://imageproxy.zhongzhuan.chat/api/upload", "tooltip": "图床API地址"}),
                 "format": (["jpeg", "png", "webp"], {"default": "jpeg", "tooltip": "图片格式"}),
                 "quality": ("INT", {"default": 100, "min": 1, "max": 100, "tooltip": "图片质量(1-100)"}),
-                "timeout": ("INT", {"default": 30, "min": 1, "max": 300, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 1, "max": 9999, "tooltip": "超时时间(秒)"}),
             }
         }
     

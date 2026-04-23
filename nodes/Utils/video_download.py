@@ -14,7 +14,7 @@ class DownloadVideo:
             "optional": {
                 "save_dir": ("STRING", {"default": "output", "tooltip": "保存目录(相对于ComfyUI根目录)"}),
                 "filename": ("STRING", {"default": "", "tooltip": "文件名(留空自动生成)"}),
-                "timeout": ("INT", {"default": 180, "min": 5, "max": 600, "tooltip": "超时(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 5, "max": 9999, "tooltip": "超时(秒)"}),
             }
         }
 

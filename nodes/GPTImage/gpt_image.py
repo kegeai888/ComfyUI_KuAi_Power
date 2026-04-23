@@ -70,7 +70,7 @@ class GPTImage2Generate:
             },
             "optional": {
                 "api_base": ("STRING", {"default": "https://ai.kegeai.top", "tooltip": "API服务器地址"}),
-                "timeout": ("INT", {"default": 120, "min": 30, "max": 600, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 30, "max": 9999, "tooltip": "超时时间(秒)"}),
             }
         }
 
@@ -137,7 +137,7 @@ class GPTImage2Edit:
                 "background": (["auto", "transparent", "opaque"], {"default": "auto", "tooltip": "背景透明度"}),
                 "moderation": (["auto", "low"], {"default": "auto", "tooltip": "内容审核级别"}),
                 "api_base": ("STRING", {"default": "https://ai.kegeai.top", "tooltip": "API服务器地址"}),
-                "timeout": ("INT", {"default": 120, "min": 30, "max": 600, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 30, "max": 9999, "tooltip": "超时时间(秒)"}),
             }
         }
 

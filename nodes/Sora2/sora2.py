@@ -29,7 +29,7 @@ class SoraCreateVideo:
                 "orientation": (["portrait", "landscape"], {"default": "portrait", "tooltip": "视频方向：竖屏/横屏"}),
                 "size": (["small", "large"], {"default": "large", "tooltip": "视频尺寸"}),
                 "watermark": ("BOOLEAN", {"default": False, "tooltip": "是否添加水印"}),
-                "timeout": ("INT", {"default": 120, "min": 5, "max": 600, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 5, "max": 9999, "tooltip": "超时时间(秒)"}),
             }
         }
 
@@ -119,7 +119,7 @@ class SoraQueryTask:
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥"}),
                 "wait": ("BOOLEAN", {"default": True, "tooltip": "是否等待任务完成"}),
                 "poll_interval_sec": ("INT", {"default": 15, "min": 5, "max": 90, "tooltip": "轮询间隔(秒)"}),
-                "timeout_sec": ("INT", {"default": 1200, "min": 600, "max": 9600, "tooltip": "总超时时间(秒)"}),
+                "timeout_sec": ("INT", {"default": 1800, "min": 600, "max": 9999, "tooltip": "总超时时间(秒)"}),
             }
         }
 
@@ -215,9 +215,9 @@ class SoraCreateAndWait:
                 "orientation": (["portrait", "landscape"], {"default": "portrait", "tooltip": "视频方向：竖屏/横屏"}),
                 "size": (["small", "large"], {"default": "large", "tooltip": "视频尺寸"}),
                 "watermark": ("BOOLEAN", {"default": False, "tooltip": "是否添加水印"}),
-                "create_timeout": ("INT", {"default": 120, "min": 5, "max": 600, "tooltip": "创建超时(秒)"}),
+                "create_timeout": ("INT", {"default": 1800, "min": 5, "max": 9999, "tooltip": "创建超时(秒)"}),
                 "wait_poll_interval_sec": ("INT", {"default": 5, "min": 1, "max": 60, "tooltip": "轮询间隔(秒)"}),
-                "wait_timeout_sec": ("INT", {"default": 600, "min": 5, "max": 9600, "tooltip": "等待超时(秒)"}),
+                "wait_timeout_sec": ("INT", {"default": 1800, "min": 5, "max": 9999, "tooltip": "等待超时(秒)"}),
             }
         }
 
@@ -287,7 +287,7 @@ class SoraText2Video:
                 "orientation": (["portrait", "landscape"], {"default": "portrait", "tooltip": "视频方向：竖屏/横屏"}),
                 "size": (["small", "large"], {"default": "large", "tooltip": "视频尺寸"}),
                 "watermark": ("BOOLEAN", {"default": False, "tooltip": "是否添加水印"}),
-                "timeout": ("INT", {"default": 120, "min": 5, "max": 600, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 5, "max": 9999, "tooltip": "超时时间(秒)"}),
             }
         }
 
@@ -371,7 +371,7 @@ class SoraCreateCharacter:
                 "from_task": ("STRING", {"default": "", "tooltip": "任务ID（url和from_task二选一）"}),
                 "api_base": ("STRING", {"default": "https://api.kuai.host", "tooltip": "API端点地址"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥"}),
-                "timeout": ("INT", {"default": 60, "min": 5, "max": 300, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 5, "max": 9999, "tooltip": "超时时间(秒)"}),
             }
         }
 
@@ -445,7 +445,7 @@ class SoraRemixVideo:
             "optional": {
                 "api_base": ("STRING", {"default": "https://api.kuai.host", "tooltip": "API端点地址"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥"}),
-                "timeout": ("INT", {"default": 120, "min": 5, "max": 600, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 5, "max": 9999, "tooltip": "超时时间(秒)"}),
             }
         }
 

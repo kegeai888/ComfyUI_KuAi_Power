@@ -205,7 +205,7 @@ class VeoCSVConcurrentProcessor:
                 "max_wait_time": ("INT", {"default": 1200, "min": 60, "max": 3600,
                                           "tooltip": "单任务最大等待时间（秒）"}),
                 "poll_interval": ("INT", {"default": 15, "min": 5, "max": 60}),
-                "download_timeout": ("INT", {"default": 180, "min": 30, "max": 600}),
+                "download_timeout": ("INT", {"default": 1800, "min": 30, "max": 9999}),
             }
         }
 

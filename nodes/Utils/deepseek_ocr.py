@@ -36,7 +36,7 @@ class DeepseekOCRToPrompt:
                     "multiline": True,
                     "tooltip": "系统提示词（定义OCR行为）"
                 }),
-                "timeout": ("INT", {"default": 60, "min": 5, "max": 600, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 5, "max": 9999, "tooltip": "超时时间(秒)"}),
             }
         }
 

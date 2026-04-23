@@ -369,7 +369,7 @@ class SoraPromptFromProduct:
                 "model": ("STRING", {"default": "deepseek-v3.2-exp", "tooltip": "模型名称"}),
                 "temperature": ("FLOAT", {"default": 0.7, "min": 0.0, "max": 2.0, "step": 0.1, "tooltip": "温度参数"}),
                 "max_tokens": ("INT", {"default": 2000, "min": 100, "max": 4000, "tooltip": "最大token数"}),
-                "timeout": ("INT", {"default": 150, "min": 5, "max": 600, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 5, "max": 9999, "tooltip": "超时时间(秒)"}),
             }
         }
 

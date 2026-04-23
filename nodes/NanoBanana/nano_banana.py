@@ -64,7 +64,7 @@ class NanoBananaAIO:
                 "temperature": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 2.0, "step": 0.1, "tooltip": "生成温度"}),
                 "api_base": ("STRING", {"default": "https://api.kegeai.top", "tooltip": "API 端点地址"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API 密钥"}),
-                "timeout": ("INT", {"default": 180, "min": 60, "max": 900, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 60, "max": 9999, "tooltip": "超时时间(秒)"}),
             }
         }
 
@@ -399,7 +399,7 @@ class NanoBananaMultiTurnChat:
                 "image_input": ("IMAGE", {"tooltip": "初始参考图像"}),
                 "api_base": ("STRING", {"default": "https://api.kuai.host", "tooltip": "API 端点地址"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API 密钥"}),
-                "timeout": ("INT", {"default": 120, "min": 5, "max": 600, "tooltip": "超时时间(秒)"}),
+                "timeout": ("INT", {"default": 1800, "min": 5, "max": 9999, "tooltip": "超时时间(秒)"}),
             }
         }
 

@@ -493,9 +493,9 @@ class KlingText2VideoAndWait:
                 "watermark": ("BOOLEAN", {"default": False}),
                 "api_key": ("STRING", {"default": ""}),
                 "api_base": ("STRING", {"default": "https://ai.kegeai.top"}),
-                "create_timeout": ("INT", {"default": 120, "min": 5, "max": 600}),
+                "create_timeout": ("INT", {"default": 1800, "min": 5, "max": 9999}),
                 "poll_interval_sec": ("INT", {"default": 15, "min": 5, "max": 90}),
-                "wait_timeout_sec": ("INT", {"default": 1200, "min": 600, "max": 9600}),
+                "wait_timeout_sec": ("INT", {"default": 1800, "min": 600, "max": 9999}),
             }
         }
 
@@ -583,9 +583,9 @@ class KlingImage2VideoAndWait:
                 "watermark": ("BOOLEAN", {"default": False}),
                 "api_key": ("STRING", {"default": ""}),
                 "api_base": ("STRING", {"default": "https://ai.kegeai.top"}),
-                "create_timeout": ("INT", {"default": 120, "min": 5, "max": 600}),
+                "create_timeout": ("INT", {"default": 1800, "min": 5, "max": 9999}),
                 "poll_interval_sec": ("INT", {"default": 15, "min": 5, "max": 90}),
-                "wait_timeout_sec": ("INT", {"default": 1200, "min": 600, "max": 9600}),
+                "wait_timeout_sec": ("INT", {"default": 1800, "min": 600, "max": 9999}),
             }
         }
 

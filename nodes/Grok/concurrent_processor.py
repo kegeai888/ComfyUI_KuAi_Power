@@ -145,7 +145,7 @@ class GrokText2Video10Concurrent:
                 "save_dir": ("STRING", {"default": "output/grok", "tooltip": "视频保存目录（相对ComfyUI根目录）"}),
                 "max_wait_time": ("INT", {"default": 1200, "min": 60, "max": 3600}),
                 "poll_interval": ("INT", {"default": 10, "min": 5, "max": 60}),
-                "download_timeout": ("INT", {"default": 180, "min": 30, "max": 600}),
+                "download_timeout": ("INT", {"default": 1800, "min": 30, "max": 9999}),
                 "custom_model": ("STRING", {"default": ""}),
             }
         }
@@ -246,7 +246,7 @@ class GrokImage2Video10Concurrent:
                 "save_dir": ("STRING", {"default": "output/grok", "tooltip": "视频保存目录（相对ComfyUI根目录）"}),
                 "max_wait_time": ("INT", {"default": 1200, "min": 60, "max": 3600}),
                 "poll_interval": ("INT", {"default": 10, "min": 5, "max": 60}),
-                "download_timeout": ("INT", {"default": 180, "min": 30, "max": 600}),
+                "download_timeout": ("INT", {"default": 1800, "min": 30, "max": 9999}),
                 "custom_model": ("STRING", {"default": ""}),
             }
         }
