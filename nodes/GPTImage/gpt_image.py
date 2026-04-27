@@ -14,13 +14,28 @@ from ..Sora2.kuai_utils import (
 )
 
 MODELS = ["gpt-image-2", "gpt-image-2-all"]
-SIZES = ["auto（自动）", "1024x1024（1:1）", "1536x1024（16:9）", "1024x1536（9:16）"]
+SIZES = [
+    "auto（默认）",
+    "1024x1024（1:1｜正方形）",
+    "1536x1024（3:2｜横版）",
+    "1024x1536（2:3｜竖版）",
+    "2048x2048（1:1｜2K正方形）",
+    "2048x1152（16:9｜2K横版）",
+    "3840x2160（16:9｜4K横版）",
+    "2160x3840（9:16｜4K竖版）",
+]
 SIZE_MAP = {
-    "auto（自动）": "auto",
-    "1024x1024（1:1）": "1024x1024",
-    "1536x1024（16:9）": "1536x1024",
-    "1024x1536（9:16）": "1024x1536",
+    "auto（默认）": "auto",
+    "1024x1024（1:1｜正方形）": "1024x1024",
+    "1536x1024（3:2｜横版）": "1536x1024",
+    "1024x1536（2:3｜竖版）": "1024x1536",
+    "2048x2048（1:1｜2K正方形）": "2048x2048",
+    "2048x1152（16:9｜2K横版）": "2048x1152",
+    "3840x2160（16:9｜4K横版）": "3840x2160",
+    "2160x3840（9:16｜4K竖版）": "2160x3840",
 }
+FORMATS = ["png", "jpeg", "webp"]
+QUALITY_OPTIONS = ["auto", "low", "medium", "high"]
 
 
 def _extract_urls(data: dict) -> list:
@@ -64,7 +79,7 @@ class GPTImage2Generate:
             "required": {
                 "prompt": ("STRING", {"multiline": True, "default": "", "tooltip": "图像描述提示词"}),
                 "model": (MODELS, {"default": "gpt-image-2", "tooltip": "模型选择"}),
-                "size": (SIZES, {"default": "auto（自动）", "tooltip": "图像尺寸（size）"}),
+                "size": (SIZES, {"default": "auto（默认）", "tooltip": "图像尺寸（分辨率、比例与用途）"}),
                 "n": ("INT", {"default": 1, "min": 1, "max": 10, "tooltip": "生成数量（1-10张）"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"}),
             },
@@ -79,8 +94,8 @@ class GPTImage2Generate:
         return {
             "prompt": "提示词",
             "model": "模型",
-            "size": "图像尺寸",
-            "n": "生成数量",
+            "size": "图像尺寸（分辨率/比例）",
+            "n": "生成数量（输出图片张数）",
             "api_key": "API密钥",
             "api_base": "API地址",
             "timeout": "超时",
@@ -125,17 +140,18 @@ class GPTImage2Edit:
                 "image_url_1": ("STRING", {"default": "", "tooltip": "图片URL 1（必填）"}),
                 "prompt": ("STRING", {"multiline": True, "default": "", "tooltip": "编辑描述提示词"}),
                 "model": (MODELS, {"default": "gpt-image-2", "tooltip": "模型选择"}),
-                "size": (SIZES, {"default": "auto（自动）", "tooltip": "输出图像尺寸（size）"}),
-                "n": ("INT", {"default": 1, "min": 1, "max": 10, "tooltip": "生成数量（1-10张）"}),
+                "size": (SIZES, {"default": "auto（默认）", "tooltip": "输出图像尺寸（分辨率、比例与用途）"}),
+                "n": ("INT", {"default": 1, "min": 1, "max": 10, "tooltip": "生成数量（输出图片张数，1-10张）"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"}),
             },
             "optional": {
-                "image_url_2": ("STRING", {"default": "", "tooltip": "图片URL 2（可选）"}),
-                "image_url_3": ("STRING", {"default": "", "tooltip": "图片URL 3（可选）"}),
-                "image_url_4": ("STRING", {"default": "", "tooltip": "图片URL 4（可选）"}),
-                "quality": (["auto", "high", "medium", "low"], {"default": "auto", "tooltip": "图像质量"}),
-                "background": (["auto", "transparent", "opaque"], {"default": "auto", "tooltip": "背景透明度"}),
-                "moderation": (["auto", "low"], {"default": "auto", "tooltip": "内容审核级别"}),
+                "image_url_2": ("STRING", {"default": "", "tooltip": "图片URL 2（可选附加参考图）"}),
+                "image_url_3": ("STRING", {"default": "", "tooltip": "图片URL 3（可选附加参考图）"}),
+                "image_url_4": ("STRING", {"default": "", "tooltip": "图片URL 4（可选附加参考图）"}),
+                "format": (FORMATS, {"default": "png", "tooltip": "输出格式（可选 png、jpeg、webp）"}),
+                "quality": (QUALITY_OPTIONS, {"default": "auto", "tooltip": "图像质量（可选 low、medium、high、auto）"}),
+                "background": (["auto", "transparent", "opaque"], {"default": "auto", "tooltip": "背景透明度（auto 自动、transparent 透明、opaque 不透明）"}),
+                "moderation": (["auto", "low"], {"default": "auto", "tooltip": "内容审核级别（auto 默认、low 较宽松）"}),
                 "api_base": ("STRING", {"default": "https://ai.kegeai.top", "tooltip": "API服务器地址"}),
                 "timeout": ("INT", {"default": 1800, "min": 30, "max": 9999, "tooltip": "超时时间(秒)"}),
             }
@@ -144,20 +160,21 @@ class GPTImage2Edit:
     @classmethod
     def INPUT_LABELS(cls):
         return {
-            "image_url_1": "图片URL 1",
-            "image_url_2": "图片URL 2",
-            "image_url_3": "图片URL 3",
-            "image_url_4": "图片URL 4",
-            "prompt": "编辑提示词",
-            "model": "模型",
-            "size": "图像尺寸",
-            "n": "生成数量",
+            "image_url_1": "图片URL 1（主图）",
+            "image_url_2": "图片URL 2（附加图）",
+            "image_url_3": "图片URL 3（附加图）",
+            "image_url_4": "图片URL 4（附加图）",
+            "prompt": "编辑提示词（修改要求）",
+            "model": "模型（GPT Image 2）",
+            "size": "图像尺寸（分辨率/比例）",
+            "n": "生成数量（输出图片张数）",
             "api_key": "API密钥",
-            "quality": "图像质量",
-            "background": "背景",
-            "moderation": "内容审核",
+            "format": "输出格式（png/jpeg/webp）",
+            "quality": "图像质量（清晰度等级）",
+            "background": "背景（透明/不透明）",
+            "moderation": "内容审核（安全级别）",
             "api_base": "API地址",
-            "timeout": "超时",
+            "timeout": "超时（秒）",
         }
 
     RETURN_TYPES = ("IMAGE", "STRING")
@@ -167,7 +184,7 @@ class GPTImage2Edit:
 
     def edit(self, image_url_1, prompt, model, size, n, api_key,
              image_url_2="", image_url_3="", image_url_4="",
-             quality="auto", background="auto", moderation="auto",
+             format="png", quality="auto", background="auto", moderation="auto",
              api_base="https://ai.kegeai.top", timeout=1800):
         api_key = env_or(api_key, "KUAI_API_KEY")
         if not api_key:
@@ -190,6 +207,7 @@ class GPTImage2Edit:
             "prompt": prompt,
             "n": str(n),
             "size": SIZE_MAP.get(size, size),
+            "format": format,
             "quality": quality,
             "background": background,
             "moderation": moderation,
