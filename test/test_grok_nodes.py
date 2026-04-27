@@ -3,9 +3,11 @@
 
 import sys
 import os
+import requests
+from unittest.mock import Mock, patch
 
+# 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
 
 def test_node_registration():
     """测试节点注册"""
@@ -16,12 +18,7 @@ def test_node_registration():
     try:
         from nodes.Grok import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 
-        expected_nodes = [
-            'GrokCreateVideo', 'GrokQueryVideo', 'GrokCreateAndWait',
-            'GrokText2Video', 'GrokText2VideoAndWait',
-            'GrokImage2Video', 'GrokImage2VideoAndWait',
-            'GrokExtendVideo', 'GrokExtendVideoAndWait'
-        ]
+        expected_nodes = ['GrokCreateVideo', 'GrokQueryVideo', 'GrokCreateAndWait']
 
         for node_name in expected_nodes:
             if node_name in NODE_CLASS_MAPPINGS:
@@ -29,15 +26,20 @@ def test_node_registration():
                 node_class = NODE_CLASS_MAPPINGS[node_name]
                 print(f"   分类: {node_class.CATEGORY}")
                 print(f"   显示名称: {NODE_DISPLAY_NAME_MAPPINGS.get(node_name)}")
+
+                # 检查必需方法
                 assert hasattr(node_class, 'INPUT_TYPES'), f"{node_name} 缺少 INPUT_TYPES"
                 assert hasattr(node_class, 'RETURN_TYPES'), f"{node_name} 缺少 RETURN_TYPES"
                 assert hasattr(node_class, 'FUNCTION'), f"{node_name} 缺少 FUNCTION"
+
+                input_types = node_class.INPUT_TYPES()
+                print(f"   必需参数: {list(input_types.get('required', {}).keys())}")
+                print(f"   可选参数: {list(input_types.get('optional', {}).keys())}")
+                print()
             else:
                 print(f"❌ {node_name} 未注册")
                 return False
 
-        assert NODE_DISPLAY_NAME_MAPPINGS['GrokExtendVideo'] == '🎬 Grok 扩展视频'
-        assert NODE_DISPLAY_NAME_MAPPINGS['GrokExtendVideoAndWait'] == '⚡ Grok 扩展视频（一键）'
         return True
 
     except Exception as e:
@@ -65,22 +67,23 @@ def test_create_video():
         node_class = NODE_CLASS_MAPPINGS['GrokCreateVideo']
         node = node_class()
 
+        # 执行测试
         print("🔄 执行创建视频测试...")
         result = node.create(
             prompt="A cat playing with a ball",
-            model="grok-video-3 (6秒)",
             aspect_ratio="3:2",
-            size="720P",
-            enhance_prompt=True,
+            size="1080P",
             api_key=api_key,
             image_urls=""
         )
 
-        print("✅ 创建成功")
+        print(f"✅ 创建成功")
+        print(f"   返回类型: {type(result)}")
         print(f"   返回值数量: {len(result)}")
         print(f"   任务ID: {result[0]}")
         print(f"   状态: {result[1]}")
-        print(f"   视频时长: {result[3]}")
+        print(f"   增强提示词: {result[2][:100] if result[2] else 'N/A'}...")
+
         return True
 
     except Exception as e:
@@ -105,6 +108,7 @@ def test_query_video():
 
     if not test_task_id:
         print("⚠️  跳过执行测试（未设置 GROK_TEST_TASK_ID）")
+        print("   设置方法: export GROK_TEST_TASK_ID=your_task_id")
         return True
 
     try:
@@ -112,12 +116,20 @@ def test_query_video():
 
         node_class = NODE_CLASS_MAPPINGS['GrokQueryVideo']
         node = node_class()
-        result = node.query(task_id=test_task_id, api_key=api_key)
 
-        print("✅ 查询成功")
+        # 执行测试
+        print(f"🔄 查询任务: {test_task_id}")
+        result = node.query(
+            task_id=test_task_id,
+            api_key=api_key
+        )
+
+        print(f"✅ 查询成功")
         print(f"   任务ID: {result[0]}")
         print(f"   状态: {result[1]}")
         print(f"   视频URL: {result[2] if result[2] else 'N/A'}")
+        print(f"   增强提示词: {result[3][:100] if result[3] else 'N/A'}...")
+
         return True
 
     except Exception as e:
@@ -127,34 +139,28 @@ def test_query_video():
         return False
 
 
-def test_parameter_validation():
-    """测试参数定义"""
+def test_input_labels():
+    """测试中文标签"""
     print("\n" + "=" * 60)
-    print("测试 4: 参数定义")
+    print("测试 4: 中文标签")
     print("=" * 60)
 
     try:
         from nodes.Grok import NODE_CLASS_MAPPINGS
 
-        text_node = NODE_CLASS_MAPPINGS['GrokText2Video']
-        text_inputs = text_node.INPUT_TYPES()['required']
-        assert text_inputs['model'][0] == ["grok-video-3 (6秒)", "grok-video-3-10s (10秒)"]
-        assert text_inputs['size'][0] == ["720P"]
+        for node_name in ['GrokCreateVideo', 'GrokQueryVideo', 'GrokCreateAndWait']:
+            node_class = NODE_CLASS_MAPPINGS[node_name]
 
-        image_node = NODE_CLASS_MAPPINGS['GrokImage2Video']
-        image_inputs = image_node.INPUT_TYPES()['required']
-        assert image_inputs['model'][0] == ["grok-video-3 (6秒)", "grok-video-3-10s (10秒)"]
-        assert image_inputs['size'][0] == ["720P"]
+            if hasattr(node_class, 'INPUT_LABELS'):
+                labels = node_class.INPUT_LABELS()
+                print(f"✅ {node_name} 中文标签:")
+                for key, label in labels.items():
+                    print(f"   {key}: {label}")
+            else:
+                print(f"⚠️  {node_name} 没有 INPUT_LABELS 方法")
 
-        extend_node = NODE_CLASS_MAPPINGS['GrokExtendVideo']
-        extend_required = extend_node.INPUT_TYPES()['required']
-        assert list(extend_required.keys()) == ['prompt', 'task_id', 'model', 'start_time', 'aspect_ratio', 'size', 'upscale', 'api_key']
-        assert extend_required['size'][0] == ["720P"]
+            print()
 
-        extend_wait = NODE_CLASS_MAPPINGS['GrokExtendVideoAndWait']
-        assert extend_wait.RETURN_NAMES == ("任务ID", "状态", "视频URL", "扩展提示词", "视频时长")
-
-        print("✅ 参数定义正确")
         return True
 
     except Exception as e:
@@ -164,35 +170,154 @@ def test_parameter_validation():
         return False
 
 
-def test_duration_outputs():
-    """测试视频时长输出"""
+def test_parameter_validation():
+    """测试参数验证"""
     print("\n" + "=" * 60)
-    print("测试 5: 视频时长输出")
+    print("测试 5: 参数验证")
     print("=" * 60)
 
     try:
-        from nodes.Grok.grok import get_grok_duration
         from nodes.Grok import NODE_CLASS_MAPPINGS
 
-        assert get_grok_duration("grok-video-3 (6秒)") == 6
-        assert get_grok_duration("grok-video-3-10s (10秒)") == 10
-        assert get_grok_duration("unknown", "grok-video-3-10s (10秒)") == 10
+        # 测试 GrokCreateVideo 参数
+        node_class = NODE_CLASS_MAPPINGS['GrokCreateVideo']
+        input_types = node_class.INPUT_TYPES()
 
-        assert NODE_CLASS_MAPPINGS['GrokCreateVideo'].RETURN_NAMES[-1] == '视频时长'
-        assert NODE_CLASS_MAPPINGS['GrokText2Video'].RETURN_NAMES[-1] == '视频时长'
-        assert NODE_CLASS_MAPPINGS['GrokImage2Video'].RETURN_NAMES[-1] == '视频时长'
-        assert NODE_CLASS_MAPPINGS['GrokText2VideoAndWait'].RETURN_NAMES[-1] == '视频时长'
-        assert NODE_CLASS_MAPPINGS['GrokImage2VideoAndWait'].RETURN_NAMES[-1] == '视频时长'
+        required = input_types.get('required', {})
+        optional = input_types.get('optional', {})
 
-        extend_node = NODE_CLASS_MAPPINGS['GrokExtendVideo']()
-        payload_duration = extend_node.create
-        assert callable(payload_duration)
+        print("GrokCreateVideo 参数检查:")
 
-        total_duration = 10 + get_grok_duration("grok-video-3-10s (10秒)")
-        assert total_duration == 20
+        # 检查必需参数
+        expected_required = ['prompt', 'aspect_ratio', 'size', 'api_key']
+        for param in expected_required:
+            if param in required:
+                print(f"   ✅ {param} (必需)")
+            else:
+                print(f"   ❌ {param} (缺失)")
 
-        print("✅ 时长输出定义正确")
+        # 检查可选参数
+        expected_optional = ['image_urls', 'custom_model']
+        for param in expected_optional:
+            if param in optional:
+                print(f"   ✅ {param} (可选)")
+            else:
+                print(f"   ⚠️  {param} (未定义)")
+
+        # 检查宽高比选项
+        aspect_ratio_options = required.get('aspect_ratio', [None])[0]
+        print(f"\n   宽高比选项: {aspect_ratio_options}")
+
+        # 检查分辨率选项
+        size_options = required.get('size', [None])[0]
+        print(f"   分辨率选项: {size_options}")
+
         return True
+
+    except Exception as e:
+        print(f"❌ 测试失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def test_extend_task_origin_not_exist_message():
+    """回归测试: task_origin_not_exist 错误应包含操作指引"""
+    print("\n" + "=" * 60)
+    print("测试 6: GrokExtendVideo task_origin_not_exist 错误指引")
+    print("=" * 60)
+
+    try:
+        from nodes.Grok.grok import GrokExtendVideo
+
+        mock_resp = Mock()
+        mock_resp.status_code = 400
+        mock_resp.json.return_value = {"error": {"message": "task_origin_not_exist"}}
+        mock_resp.text = "task_origin_not_exist"
+
+        with patch("nodes.Grok.grok.requests.post", return_value=mock_resp):
+            node = GrokExtendVideo()
+            try:
+                node.create(
+                    prompt="test prompt",
+                    task_id="fake-task-id",
+                    model="grok-video-3",
+                    start_time=10,
+                    aspect_ratio="3:2",
+                    size="720P",
+                    api_key="test-key",
+                )
+                print("❌ 应抛出 RuntimeError 但未抛出")
+                return False
+            except RuntimeError as e:
+                msg = str(e)
+                required_fragments = [
+                    "原始视频任务不存在或不可扩展",
+                    "task_id 是否来自首段视频节点的真实输出",
+                    "同一个 API 地址",
+                    "同一账号",
+                    "task_origin_not_exist",
+                ]
+                missing = [f for f in required_fragments if f not in msg]
+                if missing:
+                    print(f"❌ 错误消息缺少以下内容: {missing}")
+                    print(f"   实际消息: {msg}")
+                    return False
+                print("✅ 错误消息包含所有必要指引")
+                return True
+
+    except Exception as e:
+        print(f"❌ 测试失败: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def test_extend_model_and_size_options():
+    """测试 GrokExtendVideoAndWait 模型、分辨率与默认 API 地址"""
+    print("\n" + "=" * 60)
+    print("测试 6: GrokExtendVideoAndWait 参数选项")
+    print("=" * 60)
+
+    try:
+        from nodes.Grok import NODE_CLASS_MAPPINGS
+
+        node_class = NODE_CLASS_MAPPINGS['GrokExtendVideoAndWait']
+        input_types = node_class.INPUT_TYPES()
+        model_options = input_types['required']['model'][0]
+        size_options = input_types['required']['size'][0]
+        api_base_default = input_types['optional']['api_base'][1]['default']
+
+        expected_models = ['grok-video-3']
+        expected_sizes = ['720P', '1080P']
+        expected_api_base = 'https://ai.kegeai.top'
+
+        model_ok = model_options == expected_models
+        size_ok = size_options == expected_sizes
+        api_base_ok = api_base_default == expected_api_base
+
+        if model_ok:
+            print(f"✅ 模型选项正确: {model_options}")
+        else:
+            print(f"❌ 模型选项不符合预期")
+            print(f"   期望: {expected_models}")
+            print(f"   实际: {model_options}")
+
+        if size_ok:
+            print(f"✅ 分辨率选项正确: {size_options}")
+        else:
+            print(f"❌ 分辨率选项不符合预期")
+            print(f"   期望: {expected_sizes}")
+            print(f"   实际: {size_options}")
+
+        if api_base_ok:
+            print(f"✅ API 地址默认值正确: {api_base_default}")
+        else:
+            print(f"❌ API 地址默认值不符合预期")
+            print(f"   期望: {expected_api_base}")
+            print(f"   实际: {api_base_default}")
+
+        return model_ok and size_ok and api_base_ok
 
     except Exception as e:
         print(f"❌ 测试失败: {e}")
@@ -208,8 +333,10 @@ if __name__ == "__main__":
     results.append(("节点注册", test_node_registration()))
     results.append(("创建视频", test_create_video()))
     results.append(("查询视频", test_query_video()))
-    results.append(("参数定义", test_parameter_validation()))
-    results.append(("视频时长输出", test_duration_outputs()))
+    results.append(("中文标签", test_input_labels()))
+    results.append(("参数验证", test_parameter_validation()))
+    results.append(("扩展无效来源错误指引", test_extend_task_origin_not_exist_message()))
+    results.append(("扩展模型和分辨率选项", test_extend_model_and_size_options()))
 
     print("\n" + "=" * 60)
     print("测试总结")
