@@ -16,7 +16,7 @@ The current extend-video implementation in `nodes/Grok/grok.py` still uses older
 - `model` only exposes `grok-video-3 (6秒)`
 - `size` only exposes `720P`
 - the implementation still strips display text into a request model value
-- the default API base still points at `https://api.kegeai.top`
+- the default API base still points at `https://ai.kegeai.top`
 
 The new API documentation for `POST /v1/video/extend` expects a unified JSON body with these fields:
 - `model`
@@ -57,7 +57,7 @@ Behavioral rules:
 - Do not parse or transform a display label like `grok-video-3 (6秒)` because that label is no longer part of this node’s public input
 
 ### API base handling
-Change the default `api_base` for these extend nodes to the unified API host used by the rest of the current API documentation.
+Change the default `api_base` for these extend nodes to `https://ai.kegeai.top`.
 
 ## Compatibility strategy
 Keep the node output shape unchanged so existing downstream workflow links remain valid:
@@ -88,7 +88,7 @@ Mitigation:
 
 ### Risk: API host inconsistency across nodes
 Mitigation:
-- Only update the extend-node default in this change
+- Only update the extend-node default to `https://ai.kegeai.top` in this change
 - Leave repo-wide API host unification for the separate broader Grok cleanup
 
 ## Success criteria

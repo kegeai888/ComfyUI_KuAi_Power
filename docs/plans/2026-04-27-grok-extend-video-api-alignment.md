@@ -13,7 +13,7 @@
 ## File map
 
 - Modify: `nodes/Grok/grok.py`
-  - Update `GrokExtendVideo.INPUT_TYPES()` and `GrokExtendVideoAndWait.INPUT_TYPES()` so `model` exposes only `grok-video-3`, `size` exposes `720P` and `1080P`, and the default `api_base` matches the unified API host.
+  - Update `GrokExtendVideo.INPUT_TYPES()` and `GrokExtendVideoAndWait.INPUT_TYPES()` so `model` exposes only `grok-video-3`, `size` exposes `720P` and `1080P`, and the default `api_base` is `https://ai.kegeai.top`.
   - Update `GrokExtendVideo.create()` and `GrokExtendVideoAndWait.create_and_wait()` to send the selected `model` value directly unless `custom_model` overrides it.
 - Modify: `test/test_grok_nodes.py`
   - Update the extend-node public option test to assert the new model value and size options.
@@ -138,7 +138,7 @@ In `GrokExtendVideo.INPUT_TYPES()`, change the `required` and `optional` entries
     "api_key": ("STRING", {"default": "", "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"}),
 },
 "optional": {
-    "api_base": ("STRING", {"default": "https://api.kuai.host", "tooltip": "API端点地址"}),
+    "api_base": ("STRING", {"default": "https://ai.kegeai.top", "tooltip": "API端点地址"}),
     "custom_model": ("STRING", {"default": "", "tooltip": "自定义模型（留空使用下拉模型）"}),
 }
 ```
