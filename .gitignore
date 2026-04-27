@@ -1,5 +1,6 @@
 # Amazon Q rules folder
 .codebuddy/
+.worktrees/
 
 # Python
 __pycache__/
