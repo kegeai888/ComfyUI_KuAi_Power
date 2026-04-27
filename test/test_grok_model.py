@@ -66,10 +66,24 @@ def test_extend_total_duration():
     print("测试扩展后总时长")
     print("=" * 60)
 
-    total_duration = 10 + get_grok_duration("grok-video-3-10s")
-    passed = total_duration == 20
-    print(f"{'✅' if passed else '❌'} start_time=10 + 模型时长10 = {total_duration}")
-    return passed
+    test_cases = [
+        (10, "grok-video-3", 16),
+        (10, "grok-video-3-10s", 20),
+    ]
+
+    all_passed = True
+
+    for start_time, model_name, expected_total in test_cases:
+        total_duration = start_time + get_grok_duration(model_name)
+        passed = total_duration == expected_total
+        status = "✅" if passed else "❌"
+        print(
+            f"{status} start_time={start_time} + 模型 {model_name} 时长 {get_grok_duration(model_name)} = {total_duration}"
+        )
+        if not passed:
+            all_passed = False
+
+    return all_passed
 
 
 if __name__ == "__main__":

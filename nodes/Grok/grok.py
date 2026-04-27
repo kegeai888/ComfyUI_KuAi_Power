@@ -1002,7 +1002,11 @@ class GrokExtendVideo:
             raise RuntimeError("任务ID不能为空")
         if not str(prompt).strip():
             raise RuntimeError("提示词不能为空")
-        if int(start_time) <= 0:
+        try:
+            normalized_start_time = int(start_time)
+        except (TypeError, ValueError):
+            raise RuntimeError("start_time 必须是整数")
+        if normalized_start_time <= 0:
             raise RuntimeError("start_time 必须大于 0")
 
         api_base = api_base.rstrip("/")
@@ -1011,7 +1015,7 @@ class GrokExtendVideo:
         actual_model = normalize_grok_model(model)
         effective_model = (custom_model or "").strip() or actual_model
         extend_duration = get_grok_duration(effective_model, model)
-        total_duration = int(start_time) + int(extend_duration)
+        total_duration = normalized_start_time + int(extend_duration)
 
         payload = {
             "model": effective_model,
@@ -1019,11 +1023,11 @@ class GrokExtendVideo:
             "task_id": task_id,
             "aspect_ratio": aspect_ratio,
             "size": size,
-            "start_time": int(start_time),
+            "start_time": normalized_start_time,
             "upscale": bool(upscale),
         }
 
-        print(f"[ComfyUI_KuAi_Power] Grok 扩展视频任务: {task_id} 从 {start_time}s 开始扩展")
+        print(f"[ComfyUI_KuAi_Power] Grok 扩展视频任务: {task_id} 从 {normalized_start_time}s 开始扩展")
         print(f"[ComfyUI_KuAi_Power] 模型: {effective_model}, 宽高比: {aspect_ratio}, 分辨率: {size}, 放大: {bool(upscale)}")
 
         try:
@@ -1163,10 +1167,12 @@ class GrokExtendVideoAndWait:
             custom_model=custom_model,
         )
 
-        if status in ["completed", "failed"]:
+        if status == "completed":
             querier = GrokQueryVideo()
             new_task_id, status, video_url, enhanced_prompt, _ = querier.query(new_task_id, api_key, api_base)
             return (new_task_id, status, video_url, enhanced_prompt, total_duration)
+        if status == "failed":
+            raise RuntimeError(f"Grok 扩展视频失败: {enhanced_prompt or '任务创建失败'}")
 
         print(f"[ComfyUI_KuAi_Power] Grok 等待扩展视频完成，最多等待 {max_wait_time} 秒...")
 
