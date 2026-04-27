@@ -7,6 +7,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from nodes.Sora2.kuai_utils import get_duration_for_grok_model
+from nodes.Grok.grok import get_grok_duration, normalize_grok_model
 
 
 def test_grok_model_duration():
@@ -16,13 +17,10 @@ def test_grok_model_duration():
     print("=" * 60)
 
     test_cases = [
-        # (输入模型名称, 期望的 duration)
         ("grok-video-3 (6秒)", 6),
         ("grok-video-3-10s (10秒)", 10),
-        ("grok-video-3-15s (15秒)", 15),
         ("grok-video-3", 6),
         ("grok-video-3-10s", 10),
-        ("grok-video-3-15s", 15),
     ]
 
     all_passed = True
@@ -30,18 +28,10 @@ def test_grok_model_duration():
     for model_input, expected_duration in test_cases:
         actual_duration = get_duration_for_grok_model(model_input)
         passed = actual_duration == expected_duration
-
         status = "✅" if passed else "❌"
         print(f"{status} {model_input:30} → {actual_duration}秒 (期望: {expected_duration}秒)")
-
         if not passed:
             all_passed = False
-
-    print("=" * 60)
-    if all_passed:
-        print("🎉 所有测试通过！")
-    else:
-        print("⚠️  部分测试失败")
 
     return all_passed
 
@@ -55,29 +45,31 @@ def test_model_name_extraction():
     test_cases = [
         ("grok-video-3 (6秒)", "grok-video-3"),
         ("grok-video-3-10s (10秒)", "grok-video-3-10s"),
-        ("grok-video-3-15s (15秒)", "grok-video-3-15s"),
     ]
 
     all_passed = True
 
     for model_input, expected_name in test_cases:
-        # 模拟节点中的提取逻辑
-        actual_name = model_input.split(" (")[0] if " (" in model_input else model_input
-
+        actual_name = normalize_grok_model(model_input)
         passed = actual_name == expected_name
         status = "✅" if passed else "❌"
         print(f"{status} {model_input:30} → {actual_name} (期望: {expected_name})")
-
         if not passed:
             all_passed = False
 
-    print("=" * 60)
-    if all_passed:
-        print("🎉 所有测试通过！")
-    else:
-        print("⚠️  部分测试失败")
-
     return all_passed
+
+
+def test_extend_total_duration():
+    """测试扩展后总时长计算"""
+    print("\n" + "=" * 60)
+    print("测试扩展后总时长")
+    print("=" * 60)
+
+    total_duration = 10 + get_grok_duration("grok-video-3-10s")
+    passed = total_duration == 20
+    print(f"{'✅' if passed else '❌'} start_time=10 + 模型时长10 = {total_duration}")
+    return passed
 
 
 if __name__ == "__main__":
@@ -85,11 +77,13 @@ if __name__ == "__main__":
 
     result1 = test_grok_model_duration()
     result2 = test_model_name_extraction()
+    result3 = test_extend_total_duration()
 
     print("\n" + "=" * 60)
     print("总结")
     print("=" * 60)
     print(f"Duration 映射: {'✅ 通过' if result1 else '❌ 失败'}")
     print(f"模型名称提取: {'✅ 通过' if result2 else '❌ 失败'}")
+    print(f"扩展总时长: {'✅ 通过' if result3 else '❌ 失败'}")
 
-    sys.exit(0 if (result1 and result2) else 1)
+    sys.exit(0 if (result1 and result2 and result3) else 1)

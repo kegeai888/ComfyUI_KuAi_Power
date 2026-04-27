@@ -1,7 +1,6 @@
 """Grok 视频生成节点"""
 
 import json
-import os
 import time
 import requests
 from ..Sora2.kuai_utils import (
@@ -12,6 +11,27 @@ from ..Sora2.kuai_utils import (
     extract_error_message_from_response,
     extract_task_failure_detail,
 )
+
+
+GROK_MODEL_OPTIONS = ["grok-video-3 (6秒)", "grok-video-3-10s (10秒)"]
+GROK_SIZE_OPTIONS = ["720P"]
+GROK_DURATION_BY_MODEL = {
+    "grok-video-3": 6,
+    "grok-video-3-10s": 10,
+}
+
+
+def normalize_grok_model(model_value: str) -> str:
+    return model_value.split(" (")[0] if " (" in (model_value or "") else (model_value or "")
+
+
+def get_grok_duration(model_value: str, fallback_model: str = "") -> int:
+    normalized = normalize_grok_model(model_value)
+    duration = GROK_DURATION_BY_MODEL.get(normalized)
+    if duration is not None:
+        return duration
+    fallback_normalized = normalize_grok_model(fallback_model)
+    return GROK_DURATION_BY_MODEL.get(fallback_normalized, 6)
 
 
 class GrokCreateVideo:
@@ -26,7 +46,7 @@ class GrokCreateVideo:
                     "multiline": True,
                     "tooltip": "视频生成提示词（支持中英文）"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
+                "model": (GROK_MODEL_OPTIONS, {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -34,8 +54,8 @@ class GrokCreateVideo:
                     "default": "3:2",
                     "tooltip": "视频宽高比"
                 }),
-                "size": (["720P", "1080P"], {
-                    "default": "1080P",
+                "size": (GROK_SIZE_OPTIONS, {
+                    "default": "720P",
                     "tooltip": "视频分辨率"
                 }),
                 "enhance_prompt": ("BOOLEAN", {
@@ -78,8 +98,8 @@ class GrokCreateVideo:
             "api_base": "API地址"
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING")
-    RETURN_NAMES = ("任务ID", "状态", "增强提示词")
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "INT")
+    RETURN_NAMES = ("任务ID", "状态", "增强提示词", "视频时长")
     FUNCTION = "create"
     CATEGORY = "KuAi/Grok"
 
@@ -92,30 +112,22 @@ class GrokCreateVideo:
         api_base = api_base.rstrip("/")
         headers = http_headers_auth_only(api_key)
 
-        # 提取实际的模型名称（去掉时长说明）
-        actual_model = model.split(" (")[0] if " (" in model else model
+        actual_model = normalize_grok_model(model)
         effective_model = (custom_model or "").strip() or actual_model
-
-        # 根据 effective_model 判断是否支持 1080P（只有 15 秒模型支持）
-        effective_size = size
-        if "15s" not in effective_model.lower() and size == "1080P":
-            effective_size = "720P"
-            print(f"[ComfyUI_KuAi_Power] 警告：{effective_model} 不支持 1080P，已自动降级到 720P")
-
-        # 解析图片URL列表
+        video_duration = get_grok_duration(effective_model, model)
         images = ensure_list_from_urls(image_urls) if image_urls else []
 
         payload = {
             "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
-            "size": effective_size,
+            "size": size,
             "enhance_prompt": bool(enhance_prompt),
             "images": images
         }
 
         print(f"[ComfyUI_KuAi_Power] Grok 创建视频任务: {prompt[:50]}...")
-        print(f"[ComfyUI_KuAi_Power] 模型: {effective_model}, 宽高比: {aspect_ratio}, 分辨率: {effective_size}")
+        print(f"[ComfyUI_KuAi_Power] 模型: {effective_model}, 宽高比: {aspect_ratio}, 分辨率: {size}")
         if enhance_prompt:
             print(f"[ComfyUI_KuAi_Power] 提示词增强: 已启用")
 
@@ -139,7 +151,7 @@ class GrokCreateVideo:
             if enhanced_prompt and enhanced_prompt != prompt:
                 print(f"[ComfyUI_KuAi_Power] 增强后的提示词: {enhanced_prompt[:100]}...")
 
-            return (task_id, status, enhanced_prompt)
+            return (task_id, status, enhanced_prompt, video_duration)
 
         except RuntimeError:
             raise
@@ -249,7 +261,7 @@ class GrokCreateAndWait:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
+                "model": (GROK_MODEL_OPTIONS, {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -257,11 +269,11 @@ class GrokCreateAndWait:
                     "default": "3:2",
                     "tooltip": "视频宽高比"
                 }),
-                "size": (["720P", "1080P"], {
-                    "default": "1080P",
+                "size": (GROK_SIZE_OPTIONS, {
+                    "default": "720P",
                     "tooltip": "视频分辨率"
                 }),
-                                "enhance_prompt": ("BOOLEAN", {
+                "enhance_prompt": ("BOOLEAN", {
                     "default": True,
                     "tooltip": "自动将中文提示词优化并翻译为英文"
                 }),
@@ -315,8 +327,8 @@ class GrokCreateAndWait:
             "poll_interval": "轮询间隔"
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING")
-    RETURN_NAMES = ("任务ID", "状态", "视频URL", "增强提示词")
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING", "INT")
+    RETURN_NAMES = ("任务ID", "状态", "视频URL", "增强提示词", "视频时长")
     FUNCTION = "create_and_wait"
     CATEGORY = "KuAi/Grok"
 
@@ -324,9 +336,8 @@ class GrokCreateAndWait:
                        image_urls="", api_base="https://api.kegeai.top",
                        max_wait_time=1200, poll_interval=10, custom_model=""):
         """创建 Grok 视频并等待完成"""
-        # 创建任务
         creator = GrokCreateVideo()
-        task_id, status, enhanced_prompt = creator.create(
+        task_id, status, enhanced_prompt, video_duration = creator.create(
             prompt=prompt,
             model=model,
             aspect_ratio=aspect_ratio,
@@ -338,13 +349,11 @@ class GrokCreateAndWait:
             custom_model=custom_model,
         )
 
-        # 如果已经完成，直接返回
         if status in ["completed", "failed"]:
             querier = GrokQueryVideo()
             task_id, status, video_url, enhanced_prompt, _ = querier.query(task_id, api_key, api_base)
-            return (task_id, status, video_url, enhanced_prompt)
+            return (task_id, status, video_url, enhanced_prompt, video_duration)
 
-        # 轮询等待完成
         print(f"[ComfyUI_KuAi_Power] Grok 等待视频生成完成，最多等待 {max_wait_time} 秒...")
 
         querier = GrokQueryVideo()
@@ -359,7 +368,7 @@ class GrokCreateAndWait:
 
                 if status == "completed":
                     print(f"[ComfyUI_KuAi_Power] Grok 视频生成完成！")
-                    return (task_id, status, video_url, enhanced_prompt)
+                    return (task_id, status, video_url, enhanced_prompt, video_duration)
 
                 print(f"[ComfyUI_KuAi_Power] Grok 任务进行中... 已等待 {elapsed}/{max_wait_time} 秒")
 
@@ -367,9 +376,7 @@ class GrokCreateAndWait:
                 raise
             except Exception as e:
                 print(f"[ComfyUI_KuAi_Power] Grok 查询出错: {str(e)}")
-                # 继续等待，不立即失败
 
-        # 超时
         raise RuntimeError(
             f"Grok 视频生成超时（等待了 {max_wait_time} 秒）。"
             f"任务ID: {task_id}，可使用查询节点继续检查状态。"
@@ -388,7 +395,7 @@ class GrokImage2Video:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
+                "model": (GROK_MODEL_OPTIONS, {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -396,9 +403,9 @@ class GrokImage2Video:
                     "default": "3:2",
                     "tooltip": "视频宽高比"
                 }),
-                "size": (["720P", "1080P"], {
+                "size": (GROK_SIZE_OPTIONS, {
                     "default": "720P",
-                    "tooltip": "视频分辨率（暂只支持720P）"
+                    "tooltip": "视频分辨率"
                 }),
                 "enhance_prompt": ("BOOLEAN", {
                     "default": True,
@@ -449,8 +456,8 @@ class GrokImage2Video:
             "api_base": "API地址"
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING", "INT")
-    RETURN_NAMES = ("任务ID", "状态", "增强提示词", "状态更新时间")
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "INT", "INT")
+    RETURN_NAMES = ("任务ID", "状态", "增强提示词", "状态更新时间", "视频时长")
     FUNCTION = "create"
     CATEGORY = "KuAi/Grok"
 
@@ -458,53 +465,41 @@ class GrokImage2Video:
                image_url_1="", image_url_2="", image_url_3="",
                api_base="https://api.kegeai.top", custom_model=""):
         """创建 Grok 图生视频任务"""
-        # 1. 解析 API key
         api_key = env_or(api_key, "KUAI_API_KEY")
         if not api_key:
             raise RuntimeError("API Key 未配置，请在节点参数或环境变量中设置 KUAI_API_KEY")
 
-        # 2. 收集图片 URL（过滤空字符串）
         images_list = []
         for url in [image_url_1, image_url_2, image_url_3]:
             url_stripped = (url or "").strip()
             if url_stripped:
                 images_list.append(url_stripped)
 
-        # 验证图片数量（最多3张）
         if len(images_list) > 3:
             raise RuntimeError(f"最多支持3张参考图片，当前提供了 {len(images_list)} 张")
 
-        # 3. 构建请求
         api_base = api_base.rstrip("/")
         headers = http_headers_auth_only(api_key)
 
-        # 提取实际的模型名称（去掉时长说明）
-        actual_model = model.split(" (")[0] if " (" in model else model
+        actual_model = normalize_grok_model(model)
         effective_model = (custom_model or "").strip() or actual_model
-
-        # 根据 effective_model 判断是否支持 1080P（只有 15 秒模型支持）
-        effective_size = size
-        if "15s" not in effective_model.lower() and size == "1080P":
-            effective_size = "720P"
-            print(f"[ComfyUI_KuAi_Power] 警告：{effective_model} 不支持 1080P，已自动降级到 720P")
+        video_duration = get_grok_duration(effective_model, model)
 
         payload = {
             "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
-            "size": effective_size,
+            "size": size,
             "enhance_prompt": bool(enhance_prompt),
             "images": images_list
         }
 
-        # 日志输出
         if images_list:
             print(f"[ComfyUI_KuAi_Power] Grok 图生视频任务: {prompt[:50]}... (图片数: {len(images_list)})")
         else:
             print(f"[ComfyUI_KuAi_Power] Grok 文生视频任务: {prompt[:50]}...")
-        print(f"[ComfyUI_KuAi_Power] 模型: {effective_model}, 宽高比: {aspect_ratio}, 分辨率: {effective_size}")
+        print(f"[ComfyUI_KuAi_Power] 模型: {effective_model}, 宽高比: {aspect_ratio}, 分辨率: {size}")
 
-        # 4. 调用 API
         try:
             resp = requests.post(
                 f"{api_base}/v1/video/create",
@@ -523,11 +518,11 @@ class GrokImage2Video:
             status_update_time = int(result.get("status_update_time", 0))
 
             if not task_id:
-                raise RuntimeError(f"创建响应缺少任务 ID")
+                raise RuntimeError("创建响应缺少任务 ID")
 
             print(f"[ComfyUI_KuAi_Power] Grok 视频任务已创建: {task_id}, 状态: {status}")
 
-            return (task_id, status, enhanced_prompt, status_update_time)
+            return (task_id, status, enhanced_prompt, status_update_time, video_duration)
 
         except RuntimeError:
             raise
@@ -547,7 +542,7 @@ class GrokImage2VideoAndWait:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
+                "model": (GROK_MODEL_OPTIONS, {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -555,9 +550,9 @@ class GrokImage2VideoAndWait:
                     "default": "3:2",
                     "tooltip": "视频宽高比"
                 }),
-                "size": (["720P", "1080P"], {
+                "size": (GROK_SIZE_OPTIONS, {
                     "default": "720P",
-                    "tooltip": "视频分辨率（暂只支持720P）"
+                    "tooltip": "视频分辨率"
                 }),
                 "enhance_prompt": ("BOOLEAN", {
                     "default": True,
@@ -622,8 +617,8 @@ class GrokImage2VideoAndWait:
             "poll_interval": "轮询间隔"
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING")
-    RETURN_NAMES = ("任务ID", "状态", "视频URL", "增强提示词")
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING", "INT")
+    RETURN_NAMES = ("任务ID", "状态", "视频URL", "增强提示词", "视频时长")
     FUNCTION = "create_and_wait"
     CATEGORY = "KuAi/Grok"
 
@@ -632,9 +627,8 @@ class GrokImage2VideoAndWait:
                        api_base="https://api.kegeai.top",
                        max_wait_time=1200, poll_interval=10, custom_model=""):
         """创建 Grok 图生视频并等待完成"""
-        # 1. 创建任务
         creator = GrokImage2Video()
-        task_id, status, enhanced_prompt, _ = creator.create(
+        task_id, status, enhanced_prompt, _, video_duration = creator.create(
             prompt=prompt,
             model=model,
             aspect_ratio=aspect_ratio,
@@ -648,13 +642,11 @@ class GrokImage2VideoAndWait:
             custom_model=custom_model,
         )
 
-        # 2. 如果已经完成，直接返回
         if status in ["completed", "failed"]:
             querier = GrokQueryVideo()
             task_id, status, video_url, enhanced_prompt, _ = querier.query(task_id, api_key, api_base)
-            return (task_id, status, video_url, enhanced_prompt)
+            return (task_id, status, video_url, enhanced_prompt, video_duration)
 
-        # 3. 轮询等待完成
         print(f"[ComfyUI_KuAi_Power] Grok 等待视频生成完成，最多等待 {max_wait_time} 秒...")
 
         querier = GrokQueryVideo()
@@ -669,7 +661,7 @@ class GrokImage2VideoAndWait:
 
                 if status == "completed":
                     print(f"[ComfyUI_KuAi_Power] Grok 视频生成完成！")
-                    return (task_id, status, video_url, enhanced_prompt)
+                    return (task_id, status, video_url, enhanced_prompt, video_duration)
 
                 print(f"[ComfyUI_KuAi_Power] Grok 任务进行中... 已等待 {elapsed}/{max_wait_time} 秒")
 
@@ -677,9 +669,7 @@ class GrokImage2VideoAndWait:
                 raise
             except Exception as e:
                 print(f"[ComfyUI_KuAi_Power] Grok 查询出错: {str(e)}")
-                # 继续等待，不立即失败
 
-        # 4. 超时
         raise RuntimeError(
             f"Grok 视频生成超时（等待了 {max_wait_time} 秒）。"
             f"任务ID: {task_id}，可使用查询节点继续检查状态。"
@@ -698,7 +688,7 @@ class GrokText2Video:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
+                "model": (GROK_MODEL_OPTIONS, {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -706,11 +696,11 @@ class GrokText2Video:
                     "default": "3:2",
                     "tooltip": "视频宽高比"
                 }),
-                "size": (["720P", "1080P"], {
+                "size": (GROK_SIZE_OPTIONS, {
                     "default": "720P",
-                    "tooltip": "视频分辨率（暂只支持720P）"
+                    "tooltip": "视频分辨率"
                 }),
-                                "enhance_prompt": ("BOOLEAN", {
+                "enhance_prompt": ("BOOLEAN", {
                     "default": True,
                     "tooltip": "自动将中文提示词优化并翻译为英文"
                 }),
@@ -744,8 +734,8 @@ class GrokText2Video:
             "custom_model": "自定义模型"
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING")
-    RETURN_NAMES = ("任务ID", "状态", "增强提示词")
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "INT")
+    RETURN_NAMES = ("任务ID", "状态", "增强提示词", "视频时长")
     FUNCTION = "create"
     CATEGORY = "KuAi/Grok"
 
@@ -758,27 +748,21 @@ class GrokText2Video:
         api_base = api_base.rstrip("/")
         headers = http_headers_auth_only(api_key)
 
-        # 提取实际的模型名称（去掉时长说明）
-        actual_model = model.split(" (")[0] if " (" in model else model
+        actual_model = normalize_grok_model(model)
         effective_model = (custom_model or "").strip() or actual_model
-
-        # 根据 effective_model 判断是否支持 1080P（只有 15 秒模型支持）
-        effective_size = size
-        if "15s" not in effective_model.lower() and size == "1080P":
-            effective_size = "720P"
-            print(f"[ComfyUI_KuAi_Power] 警告：{effective_model} 不支持 1080P，已自动降级到 720P")
+        video_duration = get_grok_duration(effective_model, model)
 
         payload = {
             "model": effective_model,
             "prompt": prompt,
             "aspect_ratio": aspect_ratio,
-            "size": effective_size,
+            "size": size,
             "enhance_prompt": bool(enhance_prompt),
-            "images": []  # 文生视频不需要图片
+            "images": []
         }
 
         print(f"[ComfyUI_KuAi_Power] Grok 文生视频任务: {prompt[:50]}...")
-        print(f"[ComfyUI_KuAi_Power] 模型: {effective_model}, 宽高比: {aspect_ratio}, 分辨率: {effective_size}")
+        print(f"[ComfyUI_KuAi_Power] 模型: {effective_model}, 宽高比: {aspect_ratio}, 分辨率: {size}")
 
         try:
             resp = requests.post(
@@ -798,7 +782,7 @@ class GrokText2Video:
 
             print(f"[ComfyUI_KuAi_Power] Grok 文生视频任务已创建: {task_id}, 状态: {status}")
 
-            return (task_id, status, enhanced_prompt)
+            return (task_id, status, enhanced_prompt, video_duration)
 
         except RuntimeError:
             raise
@@ -818,7 +802,7 @@ class GrokText2VideoAndWait:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
+                "model": (GROK_MODEL_OPTIONS, {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -826,11 +810,11 @@ class GrokText2VideoAndWait:
                     "default": "3:2",
                     "tooltip": "视频宽高比"
                 }),
-                "size": (["720P", "1080P"], {
+                "size": (GROK_SIZE_OPTIONS, {
                     "default": "720P",
-                    "tooltip": "视频分辨率（暂只支持720P）"
+                    "tooltip": "视频分辨率"
                 }),
-                                "enhance_prompt": ("BOOLEAN", {
+                "enhance_prompt": ("BOOLEAN", {
                     "default": True,
                     "tooltip": "自动将中文提示词优化并翻译为英文"
                 }),
@@ -878,8 +862,8 @@ class GrokText2VideoAndWait:
             "poll_interval": "轮询间隔"
         }
 
-    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING")
-    RETURN_NAMES = ("任务ID", "状态", "视频URL", "增强提示词")
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING", "INT")
+    RETURN_NAMES = ("任务ID", "状态", "视频URL", "增强提示词", "视频时长")
     FUNCTION = "create_and_wait"
     CATEGORY = "KuAi/Grok"
 
@@ -887,9 +871,8 @@ class GrokText2VideoAndWait:
                        api_key="", api_base="https://api.kegeai.top",
                        max_wait_time=1200, poll_interval=10, custom_model=""):
         """创建 Grok 文生视频并等待完成"""
-        # 1. 创建任务
         creator = GrokText2Video()
-        task_id, status, enhanced_prompt = creator.create(
+        task_id, status, enhanced_prompt, video_duration = creator.create(
             prompt=prompt,
             model=model,
             aspect_ratio=aspect_ratio,
@@ -900,13 +883,11 @@ class GrokText2VideoAndWait:
             custom_model=custom_model,
         )
 
-        # 2. 如果已经完成，直接返回
         if status in ["completed", "failed"]:
             querier = GrokQueryVideo()
             task_id, status, video_url, enhanced_prompt, _ = querier.query(task_id, api_key, api_base)
-            return (task_id, status, video_url, enhanced_prompt)
+            return (task_id, status, video_url, enhanced_prompt, video_duration)
 
-        # 3. 轮询等待完成
         print(f"[ComfyUI_KuAi_Power] Grok 等待文生视频完成，最多等待 {max_wait_time} 秒...")
 
         querier = GrokQueryVideo()
@@ -921,7 +902,7 @@ class GrokText2VideoAndWait:
 
                 if status == "completed":
                     print(f"[ComfyUI_KuAi_Power] Grok 文生视频完成！")
-                    return (task_id, status, video_url, enhanced_prompt)
+                    return (task_id, status, video_url, enhanced_prompt, video_duration)
 
                 print(f"[ComfyUI_KuAi_Power] Grok 任务进行中... 已等待 {elapsed}/{max_wait_time} 秒")
 
@@ -929,11 +910,288 @@ class GrokText2VideoAndWait:
                 raise
             except Exception as e:
                 print(f"[ComfyUI_KuAi_Power] Grok 查询出错: {str(e)}")
-                # 继续等待，不立即失败
 
-        # 4. 超时
         raise RuntimeError(
             f"Grok 文生视频超时（等待了 {max_wait_time} 秒）。"
             f"任务ID: {task_id}，可使用查询节点继续检查状态。"
         )
 
+
+class GrokExtendVideo:
+    """创建 Grok 扩展视频任务"""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "prompt": ("STRING", {
+                    "default": "",
+                    "multiline": True,
+                    "tooltip": "扩展视频提示词"
+                }),
+                "task_id": ("STRING", {
+                    "default": "",
+                    "tooltip": "待扩展的视频任务ID"
+                }),
+                "model": (GROK_MODEL_OPTIONS, {
+                    "default": "grok-video-3 (6秒)",
+                    "tooltip": "选择 Grok 模型"
+                }),
+                "start_time": ("INT", {
+                    "default": 10,
+                    "min": 1,
+                    "max": 9999,
+                    "tooltip": "从第几秒开始扩展"
+                }),
+                "aspect_ratio": (["2:3", "3:2", "1:1"], {
+                    "default": "3:2",
+                    "tooltip": "视频宽高比"
+                }),
+                "size": (GROK_SIZE_OPTIONS, {
+                    "default": "720P",
+                    "tooltip": "视频分辨率"
+                }),
+                "upscale": ("BOOLEAN", {
+                    "default": False,
+                    "tooltip": "是否启用放大"
+                }),
+                "api_key": ("STRING", {
+                    "default": "",
+                    "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"
+                }),
+            },
+            "optional": {
+                "api_base": ("STRING", {
+                    "default": "https://api.kegeai.top",
+                    "tooltip": "API端点地址"
+                }),
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型（留空使用下拉模型）"
+                }),
+            }
+        }
+
+    @classmethod
+    def INPUT_LABELS(cls):
+        return {
+            "prompt": "扩展提示词",
+            "task_id": "任务ID",
+            "model": "模型",
+            "start_time": "开始扩展时间",
+            "aspect_ratio": "宽高比",
+            "size": "分辨率",
+            "upscale": "是否放大",
+            "api_key": "API密钥",
+            "api_base": "API地址",
+            "custom_model": "自定义模型"
+        }
+
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "INT", "INT")
+    RETURN_NAMES = ("任务ID", "状态", "扩展提示词", "状态更新时间", "视频时长")
+    FUNCTION = "create"
+    CATEGORY = "KuAi/Grok"
+
+    def create(self, prompt, task_id, model, start_time, aspect_ratio, size, upscale=False,
+               api_key="", api_base="https://api.kegeai.top", custom_model=""):
+        """创建 Grok 扩展视频任务"""
+        api_key = env_or(api_key, "KUAI_API_KEY")
+        if not api_key:
+            raise RuntimeError("API Key 未配置，请在节点参数或环境变量中设置 KUAI_API_KEY")
+        if not str(task_id).strip():
+            raise RuntimeError("任务ID不能为空")
+        if not str(prompt).strip():
+            raise RuntimeError("提示词不能为空")
+        if int(start_time) <= 0:
+            raise RuntimeError("start_time 必须大于 0")
+
+        api_base = api_base.rstrip("/")
+        headers = http_headers_auth_only(api_key)
+
+        actual_model = normalize_grok_model(model)
+        effective_model = (custom_model or "").strip() or actual_model
+        extend_duration = get_grok_duration(effective_model, model)
+        total_duration = int(start_time) + int(extend_duration)
+
+        payload = {
+            "model": effective_model,
+            "prompt": prompt,
+            "task_id": task_id,
+            "aspect_ratio": aspect_ratio,
+            "size": size,
+            "start_time": int(start_time),
+            "upscale": bool(upscale),
+        }
+
+        print(f"[ComfyUI_KuAi_Power] Grok 扩展视频任务: {task_id} 从 {start_time}s 开始扩展")
+        print(f"[ComfyUI_KuAi_Power] 模型: {effective_model}, 宽高比: {aspect_ratio}, 分辨率: {size}, 放大: {bool(upscale)}")
+
+        try:
+            resp = requests.post(
+                f"{api_base}/v1/video/extend",
+                json=payload,
+                headers=headers,
+                timeout=30
+            )
+            if resp.status_code >= 400:
+                detail = extract_error_message_from_response(resp)
+                raise RuntimeError(f"Grok 扩展视频失败: {detail}")
+
+            result = resp.json()
+            new_task_id = result.get("id", "")
+            status = result.get("status", "pending")
+            enhanced_prompt = result.get("enhanced_prompt") or prompt
+            status_update_time = int(result.get("status_update_time", 0))
+
+            if not new_task_id:
+                raise RuntimeError("创建响应缺少任务 ID")
+
+            print(f"[ComfyUI_KuAi_Power] Grok 扩展任务已创建: {new_task_id}, 状态: {status}")
+
+            return (new_task_id, status, enhanced_prompt, status_update_time, total_duration)
+
+        except RuntimeError:
+            raise
+        except Exception as e:
+            raise RuntimeError(f"Grok 扩展视频失败: {str(e)}")
+
+
+class GrokExtendVideoAndWait:
+    """创建 Grok 扩展视频并等待完成"""
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "prompt": ("STRING", {
+                    "default": "",
+                    "multiline": True,
+                    "tooltip": "扩展视频提示词"
+                }),
+                "task_id": ("STRING", {
+                    "default": "",
+                    "tooltip": "待扩展的视频任务ID"
+                }),
+                "model": (GROK_MODEL_OPTIONS, {
+                    "default": "grok-video-3 (6秒)",
+                    "tooltip": "选择 Grok 模型"
+                }),
+                "start_time": ("INT", {
+                    "default": 10,
+                    "min": 1,
+                    "max": 9999,
+                    "tooltip": "从第几秒开始扩展"
+                }),
+                "aspect_ratio": (["2:3", "3:2", "1:1"], {
+                    "default": "3:2",
+                    "tooltip": "视频宽高比"
+                }),
+                "size": (GROK_SIZE_OPTIONS, {
+                    "default": "720P",
+                    "tooltip": "视频分辨率"
+                }),
+                "upscale": ("BOOLEAN", {
+                    "default": False,
+                    "tooltip": "是否启用放大"
+                }),
+                "api_key": ("STRING", {
+                    "default": "",
+                    "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"
+                }),
+            },
+            "optional": {
+                "api_base": ("STRING", {
+                    "default": "https://api.kegeai.top",
+                    "tooltip": "API端点地址"
+                }),
+                "custom_model": ("STRING", {
+                    "default": "",
+                    "tooltip": "自定义模型（留空使用下拉模型）"
+                }),
+                "max_wait_time": ("INT", {
+                    "default": 1200,
+                    "min": 60,
+                    "max": 1800,
+                    "tooltip": "最大等待时间（秒）"
+                }),
+                "poll_interval": ("INT", {
+                    "default": 10,
+                    "min": 5,
+                    "max": 60,
+                    "tooltip": "轮询间隔（秒）"
+                }),
+            }
+        }
+
+    @classmethod
+    def INPUT_LABELS(cls):
+        return {
+            "prompt": "扩展提示词",
+            "task_id": "任务ID",
+            "model": "模型",
+            "start_time": "开始扩展时间",
+            "aspect_ratio": "宽高比",
+            "size": "分辨率",
+            "upscale": "是否放大",
+            "api_key": "API密钥",
+            "api_base": "API地址",
+            "custom_model": "自定义模型",
+            "max_wait_time": "最大等待时间",
+            "poll_interval": "轮询间隔"
+        }
+
+    RETURN_TYPES = ("STRING", "STRING", "STRING", "STRING", "INT")
+    RETURN_NAMES = ("任务ID", "状态", "视频URL", "扩展提示词", "视频时长")
+    FUNCTION = "create_and_wait"
+    CATEGORY = "KuAi/Grok"
+
+    def create_and_wait(self, prompt, task_id, model, start_time, aspect_ratio, size, upscale=False,
+                       api_key="", api_base="https://api.kegeai.top", custom_model="",
+                       max_wait_time=1200, poll_interval=10):
+        """创建 Grok 扩展视频并等待完成"""
+        creator = GrokExtendVideo()
+        new_task_id, status, enhanced_prompt, _, total_duration = creator.create(
+            prompt=prompt,
+            task_id=task_id,
+            model=model,
+            start_time=start_time,
+            aspect_ratio=aspect_ratio,
+            size=size,
+            upscale=upscale,
+            api_key=api_key,
+            api_base=api_base,
+            custom_model=custom_model,
+        )
+
+        if status in ["completed", "failed"]:
+            querier = GrokQueryVideo()
+            new_task_id, status, video_url, enhanced_prompt, _ = querier.query(new_task_id, api_key, api_base)
+            return (new_task_id, status, video_url, enhanced_prompt, total_duration)
+
+        print(f"[ComfyUI_KuAi_Power] Grok 等待扩展视频完成，最多等待 {max_wait_time} 秒...")
+
+        querier = GrokQueryVideo()
+        elapsed = 0
+
+        while elapsed < max_wait_time:
+            time.sleep(poll_interval)
+            elapsed += poll_interval
+
+            try:
+                new_task_id, status, video_url, enhanced_prompt, _ = querier.query(new_task_id, api_key, api_base)
+
+                if status == "completed":
+                    print(f"[ComfyUI_KuAi_Power] Grok 扩展视频完成！")
+                    return (new_task_id, status, video_url, enhanced_prompt or prompt, total_duration)
+
+                print(f"[ComfyUI_KuAi_Power] Grok 扩展任务进行中... 已等待 {elapsed}/{max_wait_time} 秒")
+
+            except RuntimeError:
+                raise
+            except Exception as e:
+                print(f"[ComfyUI_KuAi_Power] Grok 查询出错: {str(e)}")
+
+        raise RuntimeError(
+            f"Grok 扩展视频超时（等待了 {max_wait_time} 秒）。"
+            f"任务ID: {new_task_id}，可使用查询节点继续检查状态。"
+        )
