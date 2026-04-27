@@ -2,7 +2,7 @@ import json
 import time
 import requests
 from .kuai_utils import (env_or, ensure_list_from_urls,
-                         http_headers_json, json_get,
+                         http_headers_auth_only, json_get,
                          SORA2_MODELS, get_duration_for_sora2_model,
                          extract_error_message_from_response, extract_task_failure_detail)
 
@@ -86,7 +86,7 @@ class SoraCreateVideo:
         }
 
         try:
-            resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
+            resp = requests.post(endpoint, headers=http_headers_auth_only(api_key), json=payload, timeout=int(timeout))
             if resp.status_code >= 400:
                 detail = extract_error_message_from_response(resp)
                 raise RuntimeError(f"创建视频失败: {detail}")
@@ -145,7 +145,7 @@ class SoraQueryTask:
 
         def once():
             try:
-                resp = requests.get(endpoint, headers=http_headers_json(api_key), params={"id": task_id}, timeout=60)
+                resp = requests.get(endpoint, headers=http_headers_auth_only(api_key), params={"id": task_id}, timeout=60)
                 if resp.status_code >= 400:
                     detail = extract_error_message_from_response(resp)
                     raise RuntimeError(f"查询失败: {detail}")
@@ -338,7 +338,7 @@ class SoraText2Video:
         }
 
         try:
-            resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
+            resp = requests.post(endpoint, headers=http_headers_auth_only(api_key), json=payload, timeout=int(timeout))
             if resp.status_code >= 400:
                 detail = extract_error_message_from_response(resp)
                 raise RuntimeError(f"创建视频失败: {detail}")
@@ -411,7 +411,7 @@ class SoraCreateCharacter:
             payload["from_task"] = from_task
 
         try:
-            resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
+            resp = requests.post(endpoint, headers=http_headers_auth_only(api_key), json=payload, timeout=int(timeout))
             if resp.status_code >= 400:
                 detail = extract_error_message_from_response(resp)
                 raise RuntimeError(f"创建角色失败: {detail}")
@@ -480,7 +480,7 @@ class SoraRemixVideo:
         }
 
         try:
-            resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
+            resp = requests.post(endpoint, headers=http_headers_auth_only(api_key), json=payload, timeout=int(timeout))
             if resp.status_code >= 400:
                 detail = extract_error_message_from_response(resp)
                 raise RuntimeError(f"视频编辑失败: {detail}")

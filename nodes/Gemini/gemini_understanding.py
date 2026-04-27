@@ -132,10 +132,6 @@ class GeminiImageUnderstanding:
             api_base = api_base.rstrip("/")
             url = f"{api_base}/v1beta/models/{effective_model}:generateContent"
 
-            headers = {
-                "Content-Type": "application/json"
-            }
-
             payload = {
                 "contents": [
                     {
@@ -165,7 +161,6 @@ class GeminiImageUnderstanding:
                 url,
                 params={"key": api_key},
                 json=payload,
-                headers=headers,
                 timeout=timeout
             )
 
@@ -302,10 +297,6 @@ class GeminiVideoUnderstanding:
             api_base = api_base.rstrip("/")
             url = f"{api_base}/v1beta/models/{effective_model}:generateContent"
 
-            headers = {
-                "Content-Type": "application/json"
-            }
-
             payload = {
                 "contents": [
                     {
@@ -332,7 +323,6 @@ class GeminiVideoUnderstanding:
                 url,
                 params={"key": api_key},
                 json=payload,
-                headers=headers,
                 timeout=timeout
             )
 

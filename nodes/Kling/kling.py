@@ -3,7 +3,7 @@
 import json
 import time
 import requests
-from ..Sora2.kuai_utils import env_or, http_headers_json, raise_for_bad_status
+from ..Sora2.kuai_utils import env_or, http_headers_auth_only, raise_for_bad_status
 from .kling_utils import parse_kling_response, KLING_MODELS, KLING_ASPECT_RATIOS
 
 
@@ -116,7 +116,7 @@ class KlingText2Video:
 
         # 构建请求
         endpoint = api_base.rstrip("/") + "/kling/v1/videos/text2video"
-        headers = http_headers_json(api_key)
+        headers = http_headers_auth_only(api_key)
 
         payload = {
             "model_name": final_model,
@@ -277,7 +277,7 @@ class KlingImage2Video:
 
         # 构建请求
         endpoint = api_base.rstrip("/") + "/kling/v1/videos/image2video"
-        headers = http_headers_json(api_key)
+        headers = http_headers_auth_only(api_key)
 
         payload = {
             "model_name": final_model,
@@ -392,7 +392,7 @@ class KlingQueryTask:
             raise RuntimeError("请提供任务 ID")
 
         endpoint = api_base.rstrip("/") + f"/kling/v1/videos/text2video/{task_id}"
-        headers = http_headers_json(api_key)
+        headers = http_headers_auth_only(api_key)
 
         def query_once():
             """查询一次"""

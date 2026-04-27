@@ -9,7 +9,7 @@ if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
 
 try:
-    from kuai_utils import env_or, http_headers_json, extract_error_message_from_response
+    from kuai_utils import env_or, http_headers_auth_only, extract_error_message_from_response
 except ImportError:
     import importlib.util
     utils_path = parent_dir / "kuai_utils.py"
@@ -17,7 +17,7 @@ except ImportError:
     utils = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(utils)
     env_or = utils.env_or
-    http_headers_json = utils.http_headers_json
+    http_headers_auth_only = utils.http_headers_auth_only
     extract_error_message_from_response = utils.extract_error_message_from_response
 
 class DeepseekOCRToPrompt:
@@ -69,7 +69,7 @@ class DeepseekOCRToPrompt:
         }
 
         try:
-            resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
+            resp = requests.post(endpoint, headers=http_headers_auth_only(api_key), json=payload, timeout=int(timeout))
             if resp.status_code >= 400:
                 detail = extract_error_message_from_response(resp)
                 raise RuntimeError(f"OCR 调用失败: {detail}")

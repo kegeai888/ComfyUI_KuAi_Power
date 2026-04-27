@@ -8,7 +8,7 @@ from PIL import Image
 
 from ..Sora2.kuai_utils import (
     env_or,
-    http_headers_json,
+    http_headers_auth_only,
     http_headers_multipart,
     raise_for_bad_status,
 )
@@ -117,7 +117,7 @@ class GPTImage2Generate:
         resp = requests.post(
             f"{api_base.rstrip('/')}/v1/images/generations",
             json=payload,
-            headers=http_headers_json(api_key),
+            headers=http_headers_auth_only(api_key),
             timeout=timeout,
         )
         raise_for_bad_status(resp, "GPTImage文生图失败")

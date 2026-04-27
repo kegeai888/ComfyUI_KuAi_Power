@@ -2,7 +2,7 @@ import json
 import time
 import requests
 from ..Sora2.kuai_utils import (env_or, ensure_list_from_urls,
-                           http_headers_json, json_get)
+                           http_headers_auth_only, json_get)
 
 
 def _first_non_empty(*values):
@@ -122,7 +122,7 @@ class VeoText2Video:
         }
 
         try:
-            resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
+            resp = requests.post(endpoint, headers=http_headers_auth_only(api_key), json=payload, timeout=int(timeout))
             if resp.status_code >= 400:
                 detail = _extract_error_message_from_response(resp)
                 raise RuntimeError(f"创建 Veo 视频失败: {detail}")
@@ -210,7 +210,7 @@ class VeoImage2Video:
         }
 
         try:
-            resp = requests.post(endpoint, headers=http_headers_json(api_key), data=json.dumps(payload), timeout=int(timeout))
+            resp = requests.post(endpoint, headers=http_headers_auth_only(api_key), json=payload, timeout=int(timeout))
             if resp.status_code >= 400:
                 detail = _extract_error_message_from_response(resp)
                 raise RuntimeError(f"创建 Veo 视频失败: {detail}")
@@ -258,7 +258,7 @@ class VeoQueryTask:
 
         def once():
             try:
-                resp = requests.get(endpoint, headers=http_headers_json(api_key), params={"id": task_id}, timeout=60)
+                resp = requests.get(endpoint, headers=http_headers_auth_only(api_key), params={"id": task_id}, timeout=60)
                 if resp.status_code >= 400:
                     detail = _extract_error_message_from_response(resp)
                     raise RuntimeError(f"查询失败: {detail}")

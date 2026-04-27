@@ -2,8 +2,8 @@
 import sys
 from pathlib import Path
 
-# 添加当前目录到路径
-sys.path.insert(0, str(Path(__file__).parent))
+# 添加项目根目录到路径
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from nodes.Sora2 import NODE_CLASS_MAPPINGS as SORA2_MAPPINGS
 from nodes.Utils import NODE_CLASS_MAPPINGS as UTILS_MAPPINGS

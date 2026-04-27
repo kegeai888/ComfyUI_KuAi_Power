@@ -12,7 +12,7 @@ def check_file_structure():
     base_dir = Path(__file__).parent
     required_files = [
         "nodes/Sora2/__init__.py",
-        "nodes/Sora2/utils.py",
+        "nodes/Sora2/kuai_utils.py",
         "nodes/Sora2/script_generator.py",
         "nodes/Sora2/sora2.py",
         "web/kuaipower_panel.js",
@@ -67,12 +67,12 @@ def check_imports():
     base_dir = Path(__file__).parent
     sys.path.insert(0, str(base_dir))
     
-    # 检查 utils
+    # 检查 kuai_utils
     try:
-        from nodes.Sora2.utils import env_or, http_headers_json
-        print("   ✅ nodes.Sora2.utils")
+        from nodes.Sora2.kuai_utils import env_or, http_headers_json
+        print("   ✅ nodes.Sora2.kuai_utils")
     except Exception as e:
-        print(f"   ❌ nodes.Sora2.utils - {e}")
+        print(f"   ❌ nodes.Sora2.kuai_utils - {e}")
         return False
     
     # 检查 script_generator
@@ -80,9 +80,8 @@ def check_imports():
         from nodes.Sora2.script_generator import (
             ProductInfoBuilder,
             SoraPromptFromProduct,
-            DeepseekOCRToPrompt
         )
-        print("   ✅ nodes.Sora2.script_generator (3 节点)")
+        print("   ✅ nodes.Sora2.script_generator (2 节点)")
     except Exception as e:
         print(f"   ❌ nodes.Sora2.script_generator - {e}")
         return False
@@ -90,12 +89,11 @@ def check_imports():
     # 检查 sora2
     try:
         from nodes.Sora2.sora2 import (
-            UploadToImageHost,
             SoraCreateVideo,
             SoraQueryTask,
             SoraCreateAndWait
         )
-        print("   ✅ nodes.Sora2.sora2 (4 节点)")
+        print("   ✅ nodes.Sora2.sora2 (3 节点)")
     except Exception as e:
         print(f"   ❌ nodes.Sora2.sora2 - {e}")
         return False
