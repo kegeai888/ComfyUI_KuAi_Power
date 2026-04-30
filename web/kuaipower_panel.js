@@ -14,6 +14,7 @@ app.registerExtension({
       "Gemini": "🔍 Gemini 理解",
       "NanoBanana": "🍌 Nano Banana 图像生成",
       "GPTImage": "🖼️ GPT 图像生成",
+      "GrokImage": "🖼️ Grok Image 图像生成",
       "Utils": "🛠️ 工具节点",
       "Product": "📦 产品管理",
       "配套能力": "🛠️ 配套能力"

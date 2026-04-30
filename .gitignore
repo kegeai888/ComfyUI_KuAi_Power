@@ -1,6 +1,9 @@
 # Amazon Q rules folder
 .codebuddy/
 .worktrees/
+.claude/settings.local.json
+.claude/worktrees/
+docs/superpowers/plans/
 
 # Python
 __pycache__/

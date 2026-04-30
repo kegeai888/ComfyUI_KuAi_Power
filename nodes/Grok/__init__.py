@@ -11,6 +11,11 @@ from .grok import (
     GrokExtendVideo,
     GrokExtendVideoAndWait,
 )
+from .grok_videos import (
+    GrokVideosCreateVideo,
+    GrokVideosQueryVideo,
+    GrokVideosCreateAndWait,
+)
 from .batch_processor import GrokBatchProcessor
 from .concurrent_processor import (
     GrokText2Video10Concurrent,
@@ -30,6 +35,9 @@ NODE_CLASS_MAPPINGS = {
     "GrokText2VideoAndWait": GrokText2VideoAndWait,
     "GrokExtendVideo": GrokExtendVideo,
     "GrokExtendVideoAndWait": GrokExtendVideoAndWait,
+    "GrokVideosCreateVideo": GrokVideosCreateVideo,
+    "GrokVideosQueryVideo": GrokVideosQueryVideo,
+    "GrokVideosCreateAndWait": GrokVideosCreateAndWait,
     "GrokBatchProcessor": GrokBatchProcessor,
     "GrokText2Video10Concurrent": GrokText2Video10Concurrent,
     "GrokImage2Video10Concurrent": GrokImage2Video10Concurrent,
@@ -48,6 +56,9 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "GrokText2VideoAndWait": "⚡ Grok 文生视频（一键）",
     "GrokExtendVideo": "🎬 Grok 扩展视频",
     "GrokExtendVideoAndWait": "⚡ Grok 扩展视频（一键）",
+    "GrokVideosCreateVideo": "🤖 Grok-videos 生视频 6-10s",
+    "GrokVideosQueryVideo": "🔍 Grok-videos 查询视频",
+    "GrokVideosCreateAndWait": "⚡ Grok-videos 生视频 6-10s（一键）",
     "GrokBatchProcessor": "📦 Grok 批量处理器",
     "GrokText2Video10Concurrent": "⚡ Grok 文生视频（10路并发）",
     "GrokImage2Video10Concurrent": "⚡ Grok 图生视频（10路并发）",
