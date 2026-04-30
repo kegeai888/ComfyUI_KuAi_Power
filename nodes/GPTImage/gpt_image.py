@@ -13,7 +13,8 @@ from ..Sora2.kuai_utils import (
     raise_for_bad_status,
 )
 
-MODELS = ["gpt-image-2", "gpt-image-2-all"]
+MODELS = ["gpt-image-2"]
+EDIT_MODELS = ["gpt-image-2"]
 SIZES = [
     "auto（默认）",
     "1024x1024（1:1｜正方形）",
@@ -139,7 +140,7 @@ class GPTImage2Edit:
             "required": {
                 "image_url_1": ("STRING", {"default": "", "tooltip": "图片URL 1（必填）"}),
                 "prompt": ("STRING", {"multiline": True, "default": "", "tooltip": "编辑描述提示词"}),
-                "model": (MODELS, {"default": "gpt-image-2", "tooltip": "模型选择"}),
+                "model": (EDIT_MODELS, {"default": "gpt-image-2", "tooltip": "模型选择"}),
                 "size": (SIZES, {"default": "auto（默认）", "tooltip": "输出图像尺寸（分辨率、比例与用途）"}),
                 "n": ("INT", {"default": 1, "min": 1, "max": 10, "tooltip": "生成数量（输出图片张数，1-10张）"}),
                 "api_key": ("STRING", {"default": "", "tooltip": "API密钥（留空使用环境变量 KUAI_API_KEY）"}),

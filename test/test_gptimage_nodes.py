@@ -56,6 +56,9 @@ def test_gptimage_edit_parameters():
         assert "n" in required, "缺少 n 参数"
         assert "format" in optional, "缺少 format 参数"
 
+        model_options = required["model"][0]
+        assert model_options == ["gpt-image-2"], f"model 选项不匹配: {model_options}"
+
         size_options = required["size"][0]
         expected_sizes = [
             "auto（默认）",
@@ -78,6 +81,7 @@ def test_gptimage_edit_parameters():
         assert labels["quality"] == "图像质量（清晰度等级）", labels["quality"]
 
         print("✅ 图片编辑参数定义正确")
+        print(f"   model 选项: {model_options}")
         print(f"   size 选项: {size_options}")
         print(f"   format 选项: {format_options}")
         print(f"   size 标签: {labels['size']}")
@@ -103,12 +107,16 @@ def test_gptimage_generate_shared_sizes():
 
         node_class = NODE_CLASS_MAPPINGS["GPTImage2Generate"]
         input_types = node_class.INPUT_TYPES()
-        size_options = input_types["required"]["size"][0]
+        required = input_types["required"]
+        model_options = required["model"][0]
+        size_options = required["size"][0]
 
+        assert model_options == ["gpt-image-2"], f"文生图 model 选项不匹配: {model_options}"
         assert "3840x2160（16:9｜4K横版）" in size_options, "缺少 4K 横版尺寸"
         assert "2160x3840（9:16｜4K竖版）" in size_options, "缺少 4K 竖版尺寸"
 
         print("✅ 文生图节点已复用扩展尺寸")
+        print(f"   model 选项: {model_options}")
         return True
     except Exception as e:
         print(f"❌ 测试失败: {e}")

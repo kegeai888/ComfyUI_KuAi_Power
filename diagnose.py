@@ -69,7 +69,8 @@ def check_imports():
     
     # 检查 kuai_utils
     try:
-        from nodes.Sora2.kuai_utils import env_or, http_headers_json
+        from nodes.Sora2.kuai_utils import env_or, http_headers_json, http_headers_auth_only
+        _ = (env_or, http_headers_json, http_headers_auth_only)
         print("   ✅ nodes.Sora2.kuai_utils")
     except Exception as e:
         print(f"   ❌ nodes.Sora2.kuai_utils - {e}")
