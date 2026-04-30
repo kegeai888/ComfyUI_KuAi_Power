@@ -547,7 +547,7 @@ class GrokImage2VideoAndWait:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
+                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)"], {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
@@ -818,7 +818,7 @@ class GrokText2VideoAndWait:
                     "multiline": True,
                     "tooltip": "视频生成提示词"
                 }),
-                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)", "grok-video-3-15s (15秒)"], {
+                "model": (["grok-video-3 (6秒)", "grok-video-3-10s (10秒)"], {
                     "default": "grok-video-3 (6秒)",
                     "tooltip": "选择 Grok 模型"
                 }),
